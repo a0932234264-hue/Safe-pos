@@ -3,32 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>安全帽連鎖管理系統 - 雲端跨店正式版</title>
+    <title>塞弗安全帽連鎖智慧管理控制台 - 雲端跨店 V2 正式版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     <style>
+        /* 精準列印控制：專為熱感式收銀機/A4明細優化 */
         @media print {
             body * { visibility: hidden; }
             #receipt-print-area, #receipt-print-area * { visibility: visible; }
-            #receipt-print-area { position: absolute; left: 0; top: 0; width: 100%; color: #000 !important; }
+            #receipt-print-area { position: absolute; left: 0; top: 0; width: 100%; color: #000 !important; background: #fff !important; }
             .no-print { display: none !important; }
         }
+        /* 美化滾動條 */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #1e293b; }
         ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #64748b; }
         .ts-all { transition: all 0.2s ease-in-out; }
+        
+        /* 徹底解決字體縮放問題，採用動態基準變數 */
+        :root { --base-font-size: 14px; }
+        .dynamic-font { font-size: var(--base-font-size) !important; }
     </style>
 </head>
-<body class="bg-[#111827] text-slate-200 font-sans min-h-screen ts-all">
+<body class="bg-[#111827] text-slate-200 font-sans min-h-screen ts-all dynamic-font">
 
-    <div id="app" :class="zoomClass" class="min-h-screen flex flex-col relative pb-12 ts-all">
+    <div id="app" :style="{ '--base-font-size': currentFontSizePx }" class="min-h-screen flex flex-col relative pb-12 ts-all">
         
-        <div class="no-print w-full text-center text-xs py-1.5 font-black tracking-widest transition-all shadow-inner"
+        <div class="no-print w-full text-center text-xs py-2 font-black tracking-widest transition-all shadow-inner"
              :class="isCloudConnected ? 'bg-emerald-950 text-emerald-400 border-b border-emerald-900' : 'bg-red-950 text-red-400 border-b border-red-900 animate-pulse'">
-            {{ isCloudConnected ? '● 🟢 系統已成功連線至安全帽專屬 Google 雲端資料庫 (全店即時同步中)' : '● ❌ 雲端連線中斷，請檢查網路環境' }}
+            {{ isCloudConnected ? '● 🟢 雲端同步中 ｜ 塞弗安全帽（Safeer Helmet）雲端資料庫已即時互聯' : '● ❌ 雲端連線中斷，請檢查門市網路環境' }}
         </div>
 
         <div v-if="hoverImageUrl" 
@@ -40,28 +46,28 @@
 
         <div v-if="showTransferModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
             <div class="bg-[#1f2937] border border-slate-700 rounded-2xl shadow-2xl p-6 max-w-lg w-full">
-                <h4 class="text-xl font-bold text-blue-400 mb-2 flex items-center gap-2">🔀 跨店庫存調撥 (老闆後台)</h4>
+                <h4 class="text-xl font-bold text-blue-400 mb-2 flex items-center gap-2">🔀 跨店庫存調撥 (老闆專屬控制台)</h4>
                 <p class="text-sm text-slate-300 mb-4 bg-[#111827] p-4 rounded-xl border border-slate-800 leading-relaxed">
                     商品：<span class="text-white font-black text-base">[{{ transferItem.brand }}] {{ transferItem.model }}</span><br>
                     規格：顏色 <span class="text-slate-100 font-bold">{{ transferItem.color }}</span> ｜ 尺寸 <span class="text-yellow-400 font-black">{{ transferItem.size }}</span><br>
-                    目前庫存：總店 <span class="text-blue-400 font-black text-base">{{ getStockInStore(transferItem, 'store_1') }}</span> 頂 ｜ 分店 <span class="text-blue-400 font-black text-base">{{ getStockInStore(transferItem, 'store_2') }}</span> 頂
+                    實時存量：總店 <span class="text-blue-400 font-black text-base">{{ getStockInStore(transferItem, 'store_1') }}</span> 頂 ｜ 學區分店 <span class="text-blue-400 font-black text-base">{{ getStockInStore(transferItem, 'store_2') }}</span> 頂
                 </p>
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 mb-1.5">調撥方向：</label>
+                        <label class="block text-xs font-bold text-slate-400 mb-1.5">調撥流向：</label>
                         <select v-model="transferDirection" class="w-full p-3 bg-[#111827] border border-slate-600 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-blue-500 font-bold">
-                            <option value="1_to_2">由【一號店 (總店)】調往【二號店 (分店)】</option>
-                            <option value="2_to_1">由【二號店 (分店)】調往【一號店 (總店)】</option>
+                            <option value="1_to_2">由【一號店 (內埔總店)】調往【二號店 (學區分店)】</option>
+                            <option value="2_to_1">由【二號店 (學區分店)】調往【一號店 (內埔總店)】</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 mb-1.5">調撥數量 (頂)：</label>
+                        <label class="block text-xs font-bold text-slate-400 mb-1.5">調撥出庫數量 (頂)：</label>
                         <input type="number" v-model.number="transferQty" min="1" class="w-full p-3 bg-[#111827] border border-slate-600 rounded-lg text-lg font-black text-white text-center focus:outline-none focus:border-blue-500">
                     </div>
                 </div>
                 <div class="flex space-x-3 mt-6">
                     <button @click="showTransferModal = false" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-3 rounded-lg text-sm font-bold transition">取消</button>
-                    <button @click="executeTransfer" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg text-sm font-bold transition shadow-lg shadow-blue-900/30">確認調撥</button>
+                    <button @click="executeTransfer" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg text-sm font-bold transition shadow-lg shadow-blue-900/30">確認調撥執行</button>
                 </div>
             </div>
         </div>
@@ -69,23 +75,24 @@
         <div v-if="showReceiptModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
             <div class="bg-[#1f2937] border border-slate-700 rounded-2xl shadow-2xl p-6 max-w-md w-full">
                 <div class="flex justify-between items-center border-b border-slate-700 pb-3 mb-4 no-print">
-                    <h4 class="text-base font-bold text-emerald-400 flex items-center gap-1.5">🧾 交易出貨成功！明細預覽</h4>
+                    <h4 class="text-base font-bold text-emerald-400 flex items-center gap-1.5">🧾 交易成功！銷售明細單</h4>
                     <button @click="showReceiptModal = false" class="text-slate-400 hover:text-slate-200 text-xl">✕</button>
                 </div>
                 
-                <div id="receipt-print-area" class="bg-white p-5 border-2 border-dashed border-gray-400 font-mono text-xs text-gray-900 space-y-2 max-h-[450px] overflow-y-auto rounded-md shadow-inner">
-                    <div class="text-center font-black text-base tracking-wider">【{{ storeName }}】</div>
-                    <div class="text-center font-bold text-xs">銷貨簽單 / 購買明細</div>
+                <div id="receipt-print-area" class="bg-white p-5 border-2 border-dashed border-gray-400 font-mono text-xs text-gray-900 space-y-2 max-h-[500px] overflow-y-auto rounded-md shadow-inner">
+                    <div class="text-center font-black text-lg tracking-wider text-black">塞弗安全帽控制台</div>
+                    <div class="text-center font-bold text-sm text-gray-700">【{{ lastReceiptData.storeName }}】</div>
+                    <div class="text-center text-[11px] text-gray-500">銷貨簽單 / 顧客購買明細</div>
                     <div class="border-b border-dashed border-gray-400 my-2"></div>
                     <p class="text-[11px]">時間：{{ lastReceiptData.date }}</p>
-                    <p class="text-[11px]">單號：🪖 SH-{{ lastReceiptData.timestamp }}</p>
-                    <p class="text-[11px]">經辦：{{ lastReceiptData.role }}</p>
+                    <p class="text-[11px]">單號：🪖 SF-{{ lastReceiptData.timestamp }}</p>
+                    <p class="text-[11px]">經辦櫃檯：{{ lastReceiptData.role }}</p>
                     <div class="border-b border-dashed border-gray-400 my-2"></div>
                     
                     <table class="w-full text-left text-[12px] text-gray-900">
                         <thead>
-                            <tr class="border-b border-gray-400 font-bold">
-                                <th class="pb-1">品項規格</th>
+                            <tr class="border-b border-gray-400 font-bold text-black">
+                                <th class="pb-1">品項安全帽規格</th>
                                 <th class="pb-1 text-center">數量</th>
                                 <th class="pb-1 text-right">小計</th>
                             </tr>
@@ -93,46 +100,46 @@
                         <tbody>
                             <tr v-for="item in lastReceiptData.items" :key="item.id">
                                 <td class="py-2">
-                                    <div class="font-black text-[13px]">[{{ item.brand }}] {{ item.model }}</div>
-                                    <div class="text-[11px] text-gray-600 font-bold">顏色：{{ item.color }} / 尺寸：{{ item.size }}</div>
+                                    <div class="font-black text-[13px] text-black">[{{ item.brand }}] {{ item.model }}</div>
+                                    <div class="text-[11px] text-gray-600 font-bold">外觀：{{ item.color }} ｜ 尺寸：{{ item.size }}</div>
                                 </td>
-                                <td class="py-2 text-center font-black text-[13px]">x{{ item.qty }}</td>
-                                <td class="py-2 text-right font-mono font-bold">$ {{ item.singlePrice * item.qty }}</td>
+                                <td class="py-2 text-center font-black text-[13px] text-black">x{{ item.qty }}</td>
+                                <td class="py-2 text-right font-mono font-bold text-black">$ {{ item.singlePrice * item.qty }}</td>
                             </tr>
                         </tbody>
                     </table>
 
                     <div class="border-b border-dashed border-gray-400 my-2"></div>
                     <div class="space-y-1 text-right font-black text-gray-900">
-                        <p v-if="lastReceiptData.orderDiscount > 0" class="text-red-600 text-[12px]">整單折扣：- $ {{ lastReceiptData.orderDiscount }}</p>
-                        <p class="text-base text-black bg-gray-100 p-1 inline-block rounded">實收總計：$ {{ lastReceiptData.finalTotal }}</p>
+                        <p v-if="lastReceiptData.orderDiscount > 0" class="text-red-600 text-[12px]">整單議價折讓：- $ {{ lastReceiptData.orderDiscount }}</p>
+                        <p class="text-base text-black bg-gray-100 p-1.5 inline-block rounded font-black border border-gray-300">實收總計：$ {{ lastReceiptData.finalTotal }}</p>
                     </div>
                     <div class="border-b border-dashed border-gray-400 my-2"></div>
                     <div class="text-[11px] text-gray-700 space-y-1 pt-1 leading-relaxed font-sans">
-                        <p class="font-bold">⚠️ 售後服務須知：</p>
-                        <p>1. 安全帽請於現場確認外觀，離店後非特殊瑕疵恕不接受退換貨。</p>
-                        <p>2. 鏡片清潔請使用清水與軟布拭擦，切勿使用強酸強鹼溶劑。</p>
-                        <p class="text-center font-black mt-3 text-gray-900 text-[12px]">✨ 感謝您的光臨，騎車平安！ ✨</p>
+                        <p class="font-bold text-black">⚠️ 售後服務與保養須知：</p>
+                        <p>1. 安全帽請於現場確認外觀零部件，離店非特殊功能瑕疵恕不接受退換。</p>
+                        <p>2. 內襯拆洗請使用中性肥皂水，帽體鏡片請以軟布拭擦，切勿接觸強酸強鹼有機溶劑。</p>
+                        <p class="text-center font-black mt-3 text-black text-[12px] tracking-wider">✨ 感謝您的支持，塞弗祝您騎車平安！ ✨</p>
                     </div>
                 </div>
 
                 <div class="flex space-x-3 mt-5 no-print">
                     <button @click="showReceiptModal = false" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 py-3 rounded-lg text-sm font-bold transition">關閉</button>
                     <button @click="printReceipt" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-lg text-sm font-bold transition flex items-center justify-center space-x-1 shadow-lg shadow-emerald-900/40">
-                        <span>🖨️ 馬上列印收據</span>
+                        <span>🖨️ 列印銷貨簽單</span>
                     </button>
                 </div>
             </div>
         </div>
 
-        <header class="bg-[#1f2937] text-slate-100 p-4 shadow-xl border-b border-slate-800 flex justify-between items-center sticky top-0 z-40 backdrop-blur-md bg-opacity-95">
+        <header class="bg-[#1f2937] text-slate-100 p-4 shadow-xl border-b border-slate-800 flex justify-between items-center sticky top-0 z-40 backdrop-blur-md bg-opacity-95 no-print">
             <div class="flex items-center space-x-4">
                 <div class="bg-gradient-to-r from-blue-600 to-indigo-600 p-2 rounded-xl text-white shadow-md shadow-blue-900/40">
                     <span class="text-xl font-black tracking-widest px-1">SAFEER</span>
                 </div>
-                <h1 class="text-xl font-black text-slate-100 hidden md:inline-block tracking-wide">安全帽連鎖智慧管理控制台</h1>
+                <h1 class="text-xl font-black text-slate-100 hidden md:inline-block tracking-wide">連鎖控制台</h1>
                 <select v-model="currentStore" @change="clearPurchaseCart" class="bg-[#111827] text-blue-400 px-4 py-2 rounded-xl border-2 border-slate-700 text-base font-black focus:outline-none focus:border-blue-500 cursor-pointer shadow-inner">
-                    <option value="store_1">一號店 (總店)</option>
+                    <option value="store_1">一號店 (內埔總店)</option>
                     <option value="store_2">二號店 (學區分店)</option>
                 </select>
             </div>
@@ -140,46 +147,46 @@
             <div class="flex items-center space-x-4 bg-[#111827] p-2 rounded-xl border border-slate-800 shadow-inner">
                 <div class="flex items-center space-x-1 border-r border-slate-700 pr-3 mr-1">
                     <span class="text-xs font-bold text-slate-500 mr-1 hidden sm:inline">字體大小</span>
-                    <button @click="changeZoom('small')" :class="fontSizeLevel === 'small' ? 'bg-slate-600 text-white font-bold' : 'text-slate-400 hover:bg-slate-800'" class="px-2 py-0.5定位 text-xs rounded transition">A-</button>
+                    <button @click="changeZoom('small')" :class="fontSizeLevel === 'small' ? 'bg-slate-600 text-white font-bold' : 'text-slate-400 hover:bg-slate-800'" class="px-2 py-0.5 text-xs rounded transition">A-</button>
                     <button @click="changeZoom('normal')" :class="fontSizeLevel === 'normal' ? 'bg-blue-600 text-white font-bold' : 'text-slate-400 hover:bg-slate-800'" class="px-2 py-0.5 text-xs rounded transition">標準</button>
                     <button @click="changeZoom('large')" :class="fontSizeLevel === 'large' ? 'bg-amber-600 text-white font-black scale-105' : 'text-slate-400 hover:bg-slate-800'" class="px-2 py-0.5 text-xs rounded transition">A+</button>
                 </div>
 
                 <button @click="currentRole = 'staff'" :class="{'bg-slate-700 text-white font-black shadow-md': currentRole === 'staff', 'text-slate-400 hover:text-slate-200 font-bold': currentRole !== 'staff'}" class="px-4 py-1.5 rounded-lg text-sm transition-all">員工模式</button>
                 <button @click="currentRole = 'admin'" :class="{'bg-amber-600 text-white font-black shadow-md shadow-amber-900/30': currentRole === 'admin', 'text-slate-400 hover:text-slate-200 font-bold': currentRole !== 'admin'}" class="px-4 py-1.5 rounded-lg text-sm transition-all">老闆後台</button>
-                <button @click="resetToDefault" class="text-xs text-red-400/70 hover:text-red-400 px-1 border-l border-slate-700 pl-2">初始化</button>
+                <button @click="resetToDefault" class="text-xs text-red-500/50 hover:text-red-400 px-1 border-l border-slate-700 pl-2">初始化庫存</button>
             </div>
         </header>
 
-        <main class="flex-1 p-4 md:p-6 max-w-[1600px] w-full mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <main class="flex-1 p-4 md:p-6 max-w-[1600px] w-full mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 no-print">
             
             <div class="lg:col-span-2 space-y-6">
                 
                 <div class="bg-[#1f2937] p-6 rounded-2xl shadow-xl border border-slate-800">
                     <div class="border-b border-slate-700 pb-4 mb-4">
                         <h2 class="font-black text-slate-100 flex flex-wrap justify-between items-center gap-2 mb-3">
-                            <span class="flex items-center gap-2 text-xl"><span class="text-blue-500">📦</span> {{ storeName }} - 即時動態庫存表</span>
-                            <span class="text-xs bg-emerald-950/80 text-emerald-400 px-3 py-1 rounded-full border border-emerald-800 font-bold tracking-wider">● Google Firebase 雲端互聯</span>
+                            <span class="flex items-center gap-2 text-xl"><span class="text-blue-500">🪖</span> {{ storeName }} - 即時動態庫存盤點表</span>
+                            <span class="text-xs bg-emerald-950/80 text-emerald-400 px-3 py-1 rounded-full border border-emerald-800 font-bold tracking-wider">● 數據已與 Firebase 雲端互聯</span>
                         </h2>
                         
                         <div class="flex flex-wrap gap-2 items-center bg-[#111827] p-2.5 rounded-xl border border-slate-800">
-                            <span class="text-xs text-slate-400 font-black pl-1">快速篩選:</span>
+                            <span class="text-xs text-slate-400 font-black pl-1">品牌篩選:</span>
                             <button @click="selectedBrandTag = 'ALL'" 
                                     :class="selectedBrandTag === 'ALL' ? 'bg-blue-600 text-white shadow-md shadow-blue-900/30' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'"
-                                    class="text-sm px-4 py-2 rounded-lg font-black transition-all">
-                                全部商品 ({{ totalCountByBrand('ALL') }})
+                                    class="text-sm px-3 py-1.5 rounded-lg font-black transition-all">
+                                全部 ({{ totalCountByBrand('ALL') }})
                             </button>
                             <button v-for="brand in availableBrands" :key="brand"
                                     @click="selectedBrandTag = brand"
                                     :class="selectedBrandTag === brand ? 'bg-blue-600 text-white shadow-md shadow-blue-900/30' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'"
-                                    class="text-sm px-4 py-2 rounded-lg font-black transition-all uppercase tracking-wider">
+                                    class="text-sm px-3 py-1.5 rounded-lg font-black transition-all uppercase tracking-wider">
                                 {{ brand }} ({{ totalCountByBrand(brand) }})
                             </button>
                             
                             <button @click="selectedBrandTag = 'LOW_STOCK'" 
                                     :class="selectedBrandTag === 'LOW_STOCK' ? 'bg-red-600 text-white shadow-md shadow-red-900/40' : 'bg-red-950/50 text-red-400 hover:bg-red-900/40 border border-red-900/50'"
-                                    class="text-sm px-4 py-2 rounded-lg font-black transition-all flex items-center space-x-1 ml-auto">
-                                <span>⚠️ 量低需補 ({{ lowStockCount }})</span>
+                                    class="text-sm px-3 py-1.5 rounded-lg font-black transition-all flex items-center space-x-1 ml-auto">
+                                <span>⚠️ 補貨預警 ({{ lowStockCount }})</span>
                             </button>
                         </div>
                     </div>
@@ -189,19 +196,19 @@
                             <thead>
                                 <tr class="bg-[#111827] text-slate-300 text-sm font-bold tracking-wider border-b border-slate-800">
                                     <th class="p-4 w-20 text-center rounded-l-xl">縮圖</th>
-                                    <th class="p-4 text-base">品牌 / 型號規格名稱</th>
-                                    <th class="p-4 text-right text-base" style="min-width: 130px;">實體庫存</th>
+                                    <th class="p-4 text-base">品牌 / 型號規格</th>
+                                    <th class="p-4 text-right text-base" style="min-width: 140px;">現貨庫存</th>
                                     <th class="p-4 text-right text-base" v-if="currentRole === 'admin'">進價成本</th>
                                     <th class="p-4 text-right text-base" style="min-width: 160px;">對外零售價</th>
-                                    <th class="p-4 text-center text-base rounded-r-xl" :style="currentRole === 'admin' ? 'min-width: 150px;' : 'min-width: 110px;'">營運狀態</th>
+                                    <th class="p-4 text-center text-base rounded-r-xl" style="min-width: 130px;">營運狀態</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-800/60">
                                 <tr v-for="item in sortedAndFilteredInventory" :key="item.id" class="hover:bg-slate-800/40 transition-all group">
                                     <td class="p-4 text-center">
                                         <div class="w-14 h-14 cursor-zoom-in inline-block relative border border-slate-700 rounded-xl overflow-hidden bg-slate-900 group-hover:border-blue-500">
-                                            <img :src="item.image || 'https://placehold.co/100x100?text=🪖'" 
-                                                 @mousemove="showBigImage($event, item.image || 'https://placehold.co/300x300?text=No+Image')"
+                                            <img :src="item.image || 'https://images.unsplash.com/photo-1599819811279-d5ad9cccf838?w=150&auto=format&fit=crop&q=60'" 
+                                                 @mousemove="showBigImage($event, item.image || 'https://images.unsplash.com/photo-1599819811279-d5ad9cccf838?w=300')"
                                                  @mouseleave="hideBigImage"
                                                  class="w-full h-full object-cover">
                                         </div>
@@ -212,7 +219,7 @@
                                             <span class="text-xs font-black bg-slate-800 text-slate-300 px-2.5 py-0.5 rounded tracking-wide">{{ item.category }}</span>
                                         </div>
                                         <div class="font-black text-white text-lg mt-1.5 tracking-wide group-hover:text-blue-400 transition-colors">{{ item.model }}</div>
-                                        <div class="text-sm font-medium text-slate-400 mt-1">外觀顏色：<span class="text-slate-200 font-bold">{{ item.color }}</span> ｜ 專用尺碼：<span class="text-yellow-400 font-black text-base bg-yellow-950/40 px-2 py-0.5 rounded border border-yellow-900/30">{{ item.size }}</span></div>
+                                        <div class="text-sm font-medium text-slate-400 mt-1">外觀：<span class="text-slate-200 font-bold">{{ item.color }}</span> ｜ 尺碼：<span class="text-yellow-400 font-black text-base bg-yellow-950/40 px-2 py-0.5 rounded border border-yellow-900/30">{{ item.size }}</span></div>
                                     </td>
                                     
                                     <td class="p-4 text-right font-mono">
@@ -230,7 +237,7 @@
                                     <td class="p-4 text-right font-mono">
                                         <div v-if="currentRole === 'admin'" class="space-y-2 text-sm">
                                             <div class="flex items-center justify-end space-x-1.5">
-                                                <span class="text-slate-400 font-bold">標準:</span>
+                                                <span class="text-slate-400 font-bold">定價:</span>
                                                 <input type="number" v-model.number="item.price" @change="updateSingleProductCloud(item)" class="w-24 p-1.5 bg-[#111827] border border-slate-700 rounded-md text-right text-blue-400 font-black text-base focus:outline-none">
                                             </div>
                                             <div class="flex items-center justify-end space-x-1.5">
@@ -251,7 +258,7 @@
                                             🔥 促銷出清中
                                         </div>
                                         <div class="flex flex-col gap-1.5 items-center">
-                                            <span v-if="item.stock <= item.safeStock" class="bg-amber-950 text-amber-400 border border-amber-900/40 text-xs px-2.5 py-1 rounded-md font-black w-full block text-center shadow-inner">補貨預警</span>
+                                            <span v-if="item.stock <= item.safeStock" class="bg-amber-950 text-amber-400 border border-amber-900/40 text-xs px-2.5 py-1 rounded-md font-black w-full block text-center shadow-inner">量低需補</span>
                                             <span v-else class="bg-slate-800 text-slate-300 text-xs px-2.5 py-1 rounded-md font-bold w-full block text-center">存量穩定</span>
                                             
                                             <button v-if="currentRole === 'admin'" @click="openTransferModal(item)" class="bg-blue-950/80 text-blue-400 border-2 border-blue-900/60 hover:bg-blue-900 text-xs font-black py-1.5 rounded-md transition w-full mt-1">
@@ -260,6 +267,9 @@
                                         </div>
                                     </td>
                                 </tr>
+                                <tr v-if="sortedAndFilteredInventory.length === 0">
+                                    <td colspan="6" class="p-8 text-center text-slate-500 font-bold">沒有符合當前篩選條件的安全帽商品</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -267,25 +277,25 @@
 
                 <div class="bg-[#1f2937] p-6 rounded-2xl shadow-xl border-2 border-emerald-500/40 shadow-emerald-950/20">
                     <div class="flex justify-between items-center mb-1">
-                        <h3 class="font-black text-emerald-400 text-xl flex items-center gap-2">🛒 櫃檯收銀出貨終端工作台</h3>
-                        <span class="text-xs text-slate-500 font-mono font-bold">Cloud Terminal v5.0</span>
+                        <h3 class="font-black text-emerald-400 text-xl flex items-center gap-2">🛒 櫃檯收銀交易控制台</h3>
+                        <span class="text-xs text-slate-500 font-mono font-bold">Cloud Terminal v5.2</span>
                     </div>
-                    <p class="text-sm text-slate-400 mb-4">整合大字體模糊欄位搜尋、單品改價與整單直接去零頭功能。</p>
+                    <p class="text-sm text-slate-400 mb-4">支援特徵特寫模糊檢索、單品現場改價打折、整單現場去零頭讓利功能。</p>
                     
                     <div class="space-y-4 bg-[#111827] p-4 rounded-xl border border-slate-800">
                         <div>
-                            <label class="block text-sm font-black text-emerald-400 mb-2 tracking-wider">🔍 智能模糊檢索安全帽</label>
-                            <input type="text" v-model="saleSearchQuery" placeholder="⚡ 輸入特徵字，例如: SOL、消光黑、M碼... " class="w-full p-3.5 bg-[#192231] border-2 border-slate-700 rounded-xl text-base text-white font-black focus:outline-none focus:border-emerald-500 placeholder-slate-500 tracking-wide">
+                            <label class="block text-sm font-black text-emerald-400 mb-2 tracking-wider">🔍 特徵模糊快速检索安全帽 (支援品牌、規格、顏色、型號)</label>
+                            <input type="text" v-model="saleSearchQuery" placeholder="⚡ 例如輸入: SHOEI、消光黑、XL、J-Cruise... " class="w-full p-3.5 bg-[#192231] border-2 border-slate-700 rounded-xl text-base text-white font-black focus:outline-none focus:border-emerald-500 placeholder-slate-500 tracking-wide">
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                             <div class="md:col-span-2">
-                                <label class="block text-sm font-bold text-slate-400 mb-2">1. 選擇符合之現貨安全帽規格</label>
+                                <label class="block text-sm font-bold text-slate-400 mb-2">1. 選取指定出庫之安全帽規格現貨</label>
                                 <select v-model="formSale.productId" class="w-full p-3 bg-[#192231] border-2 border-slate-700 rounded-xl text-base text-slate-100 font-bold focus:outline-none focus:border-emerald-500">
-                                    <option value="">-- 請點開選取符合規格 (篩選後剩餘 {{ filteredSaleInventory.length }} 筆) --</option>
-                                    <option v-for="item in filteredSaleInventory" :value="item.id">
+                                    <option value="">-- 請點擊選取符合規格 (篩選剩餘 {{ filteredSaleInventory.length }} 筆) --</option>
+                                    <option v-for="item in filteredSaleInventory" :value="item.id" :disabled="item.stock <= 0">
                                         【{{ item.brand }}】{{ item.model }} - {{ item.color }} ({{ item.size }}碼)
-                                        {{ item.clearancePrice ? '🔥促銷$' + item.clearancePrice : '($' + item.price + ')' }} — [現貨:{{item.stock}}頂]
+                                        — [售價:${{ item.clearancePrice ? item.clearancePrice : item.price }}] — [庫存:{{item.stock}}頂] {{ item.stock <= 0 ? '(缺貨)' : '' }}
                                     </option>
                                 </select>
                             </div>
@@ -296,14 +306,14 @@
                                         <input type="number" v-model.number="formSale.qty" min="1" class="p-3 bg-[#192231] border-2 border-slate-700 rounded-xl text-base w-full text-white text-center font-black focus:outline-none focus:border-emerald-500">
                                     </div>
                                     <div class="col-span-2">
-                                        <label class="block text-xs font-black text-slate-400 mb-2">現場特別議價改價</label>
+                                        <label class="block text-xs font-black text-slate-400 mb-2">現場特別議價</label>
                                         <div class="flex space-x-1">
                                             <select v-model="formSale.discountType" class="bg-[#192231] border border-slate-700 rounded-xl text-xs p-2 text-slate-200 font-bold focus:outline-none">
-                                                <option value="none">正常價</option>
-                                                <option value="percent">打折</option>
-                                                <option value="minus">直折</option>
+                                                <option value="none">定價/出清價</option>
+                                                <option value="percent">打折(例0.9)</option>
+                                                <option value="minus">直折金額</option>
                                             </select>
-                                            <input type="number" v-model.number="formSale.discountValue" :disabled="formSale.discountType === 'none'" placeholder="金額/折數" class="border border-slate-700 rounded-xl text-sm p-2 w-full bg-[#192231] text-white disabled:bg-slate-800 disabled:text-slate-600 font-black text-center focus:outline-none">
+                                            <input type="number" v-model.number="formSale.discountValue" :disabled="formSale.discountType === 'none'" placeholder="數值" class="border border-slate-700 rounded-xl text-sm p-2 w-full bg-[#192231] text-white disabled:bg-slate-800 disabled:text-slate-600 font-black text-center focus:outline-none">
                                         </div>
                                     </div>
                                 </div>
@@ -312,27 +322,24 @@
 
                         <div class="flex justify-between items-center pt-3 border-t border-dashed border-slate-800">
                             <div class="text-sm font-black text-red-400 font-mono bg-red-950/50 px-4 py-2 rounded-xl border border-red-900/40">
-                                本次單頂經手改價金額: $ {{ calculatedSinglePrice }} 元
+                                本次單頂議價後金額: $ {{ calculatedSinglePrice }} 元
                             </div>
                             <button @click="addToSaleCart" class="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 rounded-xl text-sm font-black transition shadow-lg shadow-emerald-950/50 flex items-center gap-1.5">
-                                ➕ 暫存至本次購物車
+                                ➕ 暫存至購物車
                             </button>
                         </div>
                     </div>
 
                     <div class="border border-slate-800 rounded-xl overflow-hidden bg-[#111827] mt-4 shadow-inner">
                         <div class="bg-slate-800/50 p-4 text-sm font-black text-slate-200 border-b border-slate-800 flex justify-between items-center">
-                            <span class="flex items-center gap-1.5">📋 本次出貨購物車暫存清單 (共計 {{ saleCart.length }} 個品項)</span>
-                            <button @click="clearSaleCart" v-if="saleCart.length > 0" class="text-red-400 hover:text-red-300 text-xs font-bold underline">一鍵清空暫存車</button>
+                            <span class="flex items-center gap-1.5">📋 待結帳清單暫存車 (共 {{ saleCart.length }} 個品項)</span>
+                            <button @click="clearSaleCart" v-if="saleCart.length > 0" class="text-red-400 hover:text-red-300 text-xs font-bold underline">一鍵清空購物車</button>
                         </div>
                         <div class="max-h-60 overflow-y-auto divide-y divide-slate-800/60">
                             <div v-for="(cartItem, index) in saleCart" :key="index" class="p-4 flex justify-between items-center hover:bg-slate-800/20 text-sm">
                                 <div class="flex items-center space-x-3">
-                                    <img :src="cartItem.image || 'https://placehold.co/100x100?text=🪖'" class="w-12 h-12 object-cover rounded-xl border border-slate-700">
-                                    <div>
-                                        <div class="font-black text-white text-base">[{{ cartItem.brand }}] {{ cartItem.model }}</div>
-                                        <div class="text-slate-400 text-xs mt-1 font-bold">外觀：{{ cartItem.color }} ｜ 尺碼：{{ cartItem.size }} 碼 <span class="text-blue-400 bg-blue-950/80 px-2 py-0.5 rounded border border-blue-900/50 ml-1 font-black">{{ cartItem.discountDesc }}</span></div>
-                                    </div>
+                                    <div class="font-black text-white text-base">[{{ cartItem.brand }}] {{ cartItem.model }}</div>
+                                    <div class="text-slate-400 text-xs font-bold">外觀：{{ cartItem.color }} ｜ 尺碼：{{ cartItem.size }}碼 <span class="text-blue-400 bg-blue-950/80 px-2 py-0.5 rounded border border-blue-900/50 ml-1 font-black">{{ cartItem.discountDesc }}</span></div>
                                 </div>
                                 <div class="text-right flex items-center space-x-5">
                                     <span class="text-slate-300 font-mono font-bold text-base">x {{ cartItem.qty }} 頂</span>
@@ -341,20 +348,20 @@
                                 </div>
                             </div>
                             <div v-if="saleCart.length === 0" class="p-10 text-center text-slate-500 font-bold text-sm tracking-wider">
-                                🛒 收銀購物車目前無暫存商品
+                                🛒 收銀購物車目前空空如也
                             </div>
                         </div>
 
                         <div class="bg-[#161f30] p-4 border-t border-slate-800 flex justify-end items-center space-x-3">
-                            <span class="font-black text-sm text-slate-200 flex items-center gap-1">🧧 現場去零頭 / 整單再折現：</span>
+                            <span class="font-black text-sm text-slate-200 flex items-center gap-1">🧧 現場去零頭 / 整單再讓利折現金額：</span>
                             <div class="flex items-center space-x-1.5">
                                 <span class="text-slate-400 font-black text-base">$</span>
-                                <input type="number" v-model.number="orderGlobalDiscount" min="0" placeholder="折讓金額" class="w-32 p-2 bg-[#111827] border-2 border-slate-700 rounded-lg text-right text-red-400 font-black text-base focus:outline-none focus:border-red-500 placeholder-slate-700">
+                                <input type="number" v-model.number="orderGlobalDiscount" min="0" placeholder="輸入讓利金額" class="w-32 p-2 bg-[#111827] border-2 border-slate-700 rounded-lg text-right text-red-400 font-black text-base focus:outline-none focus:border-red-500 placeholder-slate-700">
                             </div>
                         </div>
 
                         <div class="bg-gradient-to-r from-slate-900 to-[#0d131e] text-slate-200 p-4 flex justify-between items-center border-t border-slate-800 font-black font-mono">
-                            <span class="text-base text-slate-300">🔥 顧客應繳應收總計金額：</span>
+                            <span class="text-base text-slate-300">🔥 顧客應繳實收總計金額：</span>
                             <span class="text-yellow-400 text-3xl tracking-wider">$ {{ saleCartTotalFinal }}</span>
                         </div>
                     </div>
@@ -362,7 +369,7 @@
                     <button @click="submitBatchSale" :disabled="saleCart.length === 0"
                             class="w-full text-white p-4 rounded-xl text-base font-black tracking-widest transition shadow-lg disabled:bg-slate-800 disabled:text-slate-600 disabled:cursor-not-allowed disabled:shadow-none mt-4"
                             :class="saleCart.length > 0 ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-950/40' : ''">
-                        💵 確立整單銷貨出庫 (資料秒同步雲端)
+                        💵 確立整單銷貨出庫 (Firebase 雲端原子連動扣庫)
                     </button>
                 </div>
 
@@ -371,23 +378,23 @@
             <div class="space-y-6">
                 
                 <div class="bg-[#1f2937] p-6 rounded-2xl shadow-xl border border-slate-800">
-                    <h3 class="font-black text-orange-400 text-xl flex items-center gap-1.5 mb-1">📥 貨到進庫點收工作台</h3>
-                    <p class="text-sm text-slate-400 mb-4">具備自動化下拉聯想機制，尺寸快捷鍵加寬更好點。</p>
+                    <h3 class="font-black text-orange-400 text-xl flex items-center gap-1.5 mb-1">📥 新貨到庫上架點收站</h3>
+                    <p class="text-sm text-slate-400 mb-4">具備品牌、型號自動下拉聯想機制，尺寸加寬鍵方便快速盤點。</p>
                     
                     <div class="space-y-4 bg-[#111827] p-4 rounded-xl border border-slate-800 text-sm">
                         <div>
-                            <label class="block text-slate-300 font-black mb-1.5">連動品牌設定 *</label>
+                            <label class="block text-slate-300 font-black mb-1.5">品牌設定 *</label>
                             <div class="flex gap-1.5">
                                 <select v-model="formPurchase.brand" @change="handleBrandChange" class="p-2.5 bg-[#192231] border border-slate-700 rounded-lg w-1/2 font-black text-blue-400 focus:outline-none">
-                                    <option value="">-- 記憶選取 --</option>
+                                    <option value="">-- 記憶聯想 --</option>
                                     <option v-for="b in historyBrands" :key="b" :value="b">{{ b }}</option>
                                 </select>
-                                <input type="text" v-model="formPurchase.brand" placeholder="或手動填寫" class="p-2.5 bg-[#192231] border border-slate-700 rounded-lg w-1/2 text-white font-black uppercase focus:outline-none placeholder-slate-600">
+                                <input type="text" v-model="formPurchase.brand" placeholder="或手動新增" class="p-2.5 bg-[#192231] border border-slate-700 rounded-lg w-1/2 text-white font-black uppercase focus:outline-none placeholder-slate-600">
                             </div>
                         </div>
 
                         <div>
-                            <label class="block text-slate-300 font-black mb-1.5">安全帽品類規格 *</label>
+                            <label class="block text-slate-300 font-black mb-1.5">安全帽型態品類 *</label>
                             <select v-model="formPurchase.category" class="p-2.5 bg-[#192231] border border-slate-700 rounded-lg w-full text-white font-bold focus:outline-none">
                                 <option value="全罩式">全罩式</option>
                                 <option value="3/4罩">3/4罩</option>
@@ -400,7 +407,7 @@
                             <label class="block text-slate-300 font-black mb-1.5">安全帽型號名稱 *</label>
                             <div class="flex gap-1.5">
                                 <select v-model="formPurchase.model" @change="handleModelChange" class="p-2.5 bg-[#192231] border border-slate-700 rounded-lg w-1/2 font-black text-blue-400 focus:outline-none">
-                                    <option value="">-- 記憶選取 --</option>
+                                    <option value="">-- 歷史歷史 --</option>
                                     <option v-for="m in matchedHistoryModels" :key="m" :value="m">{{ m }}</option>
                                 </select>
                                 <input type="text" v-model="formPurchase.model" placeholder="或手動填寫" class="p-2.5 bg-[#192231] border border-slate-700 rounded-lg w-1/2 text-white font-black focus:outline-none placeholder-slate-600">
@@ -408,10 +415,10 @@
                         </div>
 
                         <div>
-                            <label class="block text-slate-300 font-black mb-1.5">彩繪/外觀顏色 *</label>
+                            <label class="block text-slate-300 font-black mb-1.5">彩繪 / 外觀花色顏色 *</label>
                             <div class="flex gap-1.5">
                                 <select v-model="formPurchase.color" class="p-2.5 bg-[#192231] border border-slate-700 rounded-lg w-1/2 font-black text-blue-400 focus:outline-none">
-                                    <option value="">-- 記憶選取 --</option>
+                                    <option value="">-- 歷史花色 --</option>
                                     <option v-for="c in matchedHistoryColors" :key="c" :value="c">{{ c }}</option>
                                 </select>
                                 <input type="text" v-model="formPurchase.color" placeholder="或手動填寫" class="p-2.5 bg-[#192231] border border-slate-700 rounded-lg w-1/2 text-white font-black focus:outline-none placeholder-slate-600">
@@ -420,7 +427,7 @@
 
                         <div>
                             <label class="block text-slate-300 font-black mb-1.5">安全帽專用尺碼 *</label>
-                            <input type="text" v-model="formPurchase.size" placeholder="請指定尺寸" class="p-2.5 bg-[#192231] border border-slate-700 rounded-lg w-full text-yellow-400 font-black uppercase text-center text-lg tracking-widest mb-1.5 focus:outline-none placeholder-slate-600">
+                            <input type="text" v-model="formPurchase.size" placeholder="請指定/點選尺寸" class="p-2.5 bg-[#192231] border border-slate-700 rounded-lg w-full text-yellow-400 font-black uppercase text-center text-lg tracking-widest mb-1.5 focus:outline-none placeholder-slate-600">
                             <div class="grid grid-cols-7 gap-1">
                                 <button v-for="sz in ['XS','S','M','L','XL','2XL','3XL']" :key="sz"
                                         @click="formPurchase.size = sz" type="button"
@@ -431,41 +438,44 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-2 pt-1">
+                        <div class="grid grid-cols-3 gap-2 pt-1">
                             <div>
-                                <label class="block text-orange-400 font-black mb-1.5">點收進貨數量 *</label>
-                                <input type="number" v-model.number="formPurchase.qty" min="1" class="p-2.5 bg-[#192231] border border-slate-700 rounded-lg w-full font-black text-orange-400 text-center text-lg focus:outline-none">
+                                <label class="block text-orange-400 font-black mb-1.5">進貨數量*</label>
+                                <input type="number" v-model.number="formPurchase.qty" min="1" class="p-2 bg-[#192231] border border-slate-700 rounded-lg w-full font-black text-orange-400 text-center text-base focus:outline-none">
                             </div>
                             <div>
-                                <label class="block text-blue-400 font-black mb-1.5">預設零售售價 *</label>
-                                <input type="number" v-model.number="formPurchase.price" class="p-2.5 bg-[#192231] border border-slate-700 rounded-lg w-full text-blue-400 font-black text-center text-lg focus:outline-none">
+                                <label class="block text-blue-400 font-black mb-1.5">預設零售價*</label>
+                                <input type="number" v-model.number="formPurchase.price" class="p-2 bg-[#192231] border border-slate-700 rounded-lg w-full text-blue-400 font-black text-center text-base focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-amber-500 font-black mb-1.5">真實成本*</label>
+                                <input type="number" v-model.number="formPurchase.cost" class="p-2 bg-[#192231] border border-slate-700 rounded-lg w-full text-amber-500 font-black text-center text-base focus:outline-none">
                             </div>
                         </div>
 
                         <div>
-                            <label class="block text-slate-400 font-bold mb-1.5">📷 添加商品照片 (自動同步雲端)</label>
+                            <label class="block text-slate-400 font-bold mb-1.5">📷 添加商品照片（自動轉碼同步雲端）</label>
                             <input type="file" accept="image/*" @change="uploadImage" class="text-xs block w-full text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-black file:bg-slate-800 file:text-slate-300 hover:file:bg-slate-700 file:cursor-pointer" />
                             <div v-if="formPurchase.image" class="mt-2 flex items-center space-x-3 bg-[#192231] p-2 rounded-lg border border-slate-700">
                                 <img :src="formPurchase.image" class="w-14 h-14 object-cover rounded-md border border-slate-600">
-                                <span class="text-xs text-emerald-400 font-black">✓ 圖片編碼成功</span>
+                                <span class="text-xs text-emerald-400 font-black">✓ 圖片編碼就緒</span>
                                 <button @click="formPurchase.image = ''" class="text-red-400 hover:text-red-300 text-xs ml-auto">移除</button>
                             </div>
                         </div>
 
                         <button @click="addToPurchaseCart" class="w-full bg-orange-600 hover:bg-orange-500 text-white p-3 rounded-xl font-black text-sm transition shadow-lg shadow-orange-950/40 mt-1 tracking-wide">
-                            ➕ 追加至下方到貨盤點清單
+                            ➕ 追加至下方待到貨盤點清單
                         </button>
                     </div>
 
                     <div class="border border-slate-800 rounded-xl overflow-hidden bg-[#111827] mt-4 shadow-inner text-sm">
-                        <div class="bg-slate-800/50 p-3 text-slate-300 font-black border-b border-slate-800">本次新到貨待核對明細：</div>
+                        <div class="bg-slate-800/50 p-3 text-slate-300 font-black border-b border-slate-800">本次新到貨待校對明細：</div>
                         <div class="max-h-40 overflow-y-auto divide-y divide-slate-800/40">
                             <div v-for="(cartItem, index) in purchaseCart" :key="index" class="p-3 flex justify-between items-center hover:bg-slate-800/20">
                                 <div class="flex items-center space-x-2">
-                                    <img :src="cartItem.image || 'https://placehold.co/100x100?text=🪖'" class="w-12 h-12 object-cover rounded-lg border border-slate-700">
                                     <div>
                                         <div class="font-black text-white">[{{ cartItem.brand }}] {{ cartItem.model }}</div>
-                                        <div class="text-slate-400 text-xs mt-0.5 font-medium">{{ cartItem.color }} / {{ cartItem.size }} 碼</div>
+                                        <div class="text-slate-400 text-xs mt-0.5 font-medium">{{ cartItem.color }} / {{ cartItem.size }}碼 ｜ 零售價:${{cartItem.price}} 成本:${{cartItem.cost}}</div>
                                     </div>
                                 </div>
                                 <div class="flex items-center space-x-2">
@@ -484,7 +494,7 @@
                     <button @click="submitBatchPurchase" :disabled="purchaseCart.length === 0"
                             class="w-full text-white p-3.5 rounded-xl text-base font-black transition shadow-lg disabled:bg-slate-800 disabled:text-slate-600 disabled:cursor-not-allowed disabled:shadow-none mt-4 tracking-widest"
                             :class="purchaseCart.length > 0 ? 'bg-orange-600 hover:bg-orange-500 shadow-orange-950/40' : ''">
-                        📢 發布核對無誤，雲端入庫上架 ({{ purchaseCart.length }} 項)
+                        📢 確認數量無誤，發布雲端同步上架 ({{ purchaseCart.length }} 項)
                     </button>
                 </div>
 
@@ -494,36 +504,36 @@
                             <span>📊 【{{ storeName }}】核心營運看板</span>
                         </h2>
                         <span class="text-xs bg-blue-950 text-blue-400 border border-blue-900/60 px-3 py-1 rounded-full font-black tracking-wider" v-if="currentRole === 'staff'">員工模式</span>
-                        <span class="text-xs bg-amber-950 text-amber-400 border border-amber-900/60 px-3 py-1 rounded-full font-black tracking-wider" v-else>老闆核心權限</span>
+                        <span class="text-xs bg-amber-950 text-amber-400 border border-amber-900/60 px-3 py-1 rounded-full font-black tracking-wider" v-else>老闆控制核心</span>
                     </div>
 
                     <div class="space-y-3">
                         <div class="grid grid-cols-3 gap-2">
                             <div class="bg-[#111827]/70 p-3 rounded-xl border border-slate-800 text-center">
-                                <p class="text-xs text-slate-400 font-bold mb-1">🌤️ 今日銷售額</p>
-                                <p class="text-lg font-black text-yellow-400 font-mono">$ {{ financialData[currentStore].todayRevenue }}</p>
+                                <p class="text-xs text-slate-400 font-bold mb-1">🌤️ 今日營收</p>
+                                <p class="text-base font-black text-yellow-400 font-mono">$ {{ financialData[currentStore]?.todayRevenue || 0 }}</p>
                             </div>
                             <div class="bg-[#111827]/70 p-3 rounded-xl border border-slate-800 text-center">
-                                <p class="text-xs text-slate-400 font-bold mb-1">📅 当月銷售額</p>
-                                <p class="text-lg font-black text-cyan-400 font-mono">$ {{ financialData[currentStore].monthRevenue }}</p>
+                                <p class="text-xs text-slate-400 font-bold mb-1">📅 當月累計</p>
+                                <p class="text-base font-black text-cyan-400 font-mono">$ {{ financialData[currentStore]?.monthRevenue || 0 }}</p>
                             </div>
                             <div class="bg-[#111827]/70 p-3 rounded-xl border border-slate-800 text-center">
-                                <p class="text-xs text-slate-400 font-bold mb-1">🏆 整年銷售額</p>
-                                <p class="text-lg font-black text-emerald-400 font-mono">$ {{ financialData[currentStore].yearRevenue }}</p>
+                                <p class="text-xs text-slate-400 font-bold mb-1">🏆 年度營收</p>
+                                <p class="text-base font-black text-emerald-400 font-mono">$ {{ financialData[currentStore]?.yearRevenue || 0 }}</p>
                             </div>
                         </div>
 
                         <div class="bg-[#111827]/90 p-4 rounded-xl border border-slate-800 space-y-2">
                             <div class="flex justify-between text-xs font-black">
-                                <span class="text-slate-400">🔥 去年整年度累計營收參考：</span>
-                                <span class="text-slate-200 font-mono">基線 $ {{ financialData[currentStore].lastYearRevenue }}</span>
+                                <span class="text-slate-400">🔥 去年門市業績參考基線：</span>
+                                <span class="text-slate-200 font-mono">$ {{ financialData[currentStore]?.lastYearRevenue || 0 }}</span>
                             </div>
                             <div class="w-full bg-slate-800 rounded-full h-3 overflow-hidden flex border border-slate-900 shadow-inner">
                                 <div class="bg-gradient-to-r from-cyan-500 to-emerald-500 h-full transition-all duration-500 shadow" 
-                                     :style="{ width: Math.min(100, (financialData[currentStore].yearRevenue / (financialData[currentStore].lastYearRevenue || 1) * 100)) + '%' }"></div>
+                                     :style="{ width: Math.min(100, ((financialData[currentStore]?.yearRevenue || 0) / (financialData[currentStore]?.lastYearRevenue || 1) * 100)) + '%' }"></div>
                             </div>
                             <div class="flex justify-between items-center text-xs font-bold">
-                                <span class="text-slate-400">年度業績衝刺達成率：</span>
+                                <span class="text-slate-400">年度門市衝刺達成率：</span>
                                 <span class="font-black text-emerald-400 font-mono text-sm">{{ calculateYearGrowth }} %</span>
                             </div>
                         </div>
@@ -531,27 +541,27 @@
 
                     <div v-if="currentRole === 'admin'" class="bg-[#111827] p-4 rounded-xl border-2 border-amber-600/30 space-y-3 text-sm">
                         <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                            <span class="text-amber-400 font-black tracking-wider text-xs">🔒 老闆財務隱私後台 (雲端加密)</span>
-                            <button @click="mockLastYearData" class="text-[10px] bg-slate-800 border border-slate-700 text-slate-200 px-2.5 py-1 rounded-md hover:bg-slate-700 font-bold transition">⚙️ 注入基線數據</button>
+                            <span class="text-amber-400 font-black tracking-wider text-xs">🔒 老闆加密財務後台 (實時毛利精算)</span>
+                            <button @click="mockLastYearData" class="text-[10px] bg-slate-800 border border-slate-700 text-slate-200 px-2.5 py-1 rounded-md hover:bg-slate-700 font-bold transition">⚙️ 注入基線目標</button>
                         </div>
                         <div class="grid grid-cols-2 gap-2 text-xs text-slate-400 font-bold">
-                            <div>歷史總營業額: <span class="font-mono font-black text-white text-sm">$ {{ financialData[currentStore].revenue }}</span></div>
-                            <div>歷史預估成本: <span class="font-mono text-slate-500 text-sm">$ {{ financialData[currentStore].cost }}</span></div>
+                            <div>歷史總營業額: <span class="font-mono font-black text-white text-sm">$ {{ financialData[currentStore]?.revenue || 0 }}</span></div>
+                            <div>歷史銷售成本: <span class="font-mono text-slate-500 text-sm">$ {{ financialData[currentStore]?.cost || 0 }}</span></div>
                         </div>
                         <div class="pt-3 border-t border-slate-800/80 flex justify-between items-center">
                             <div>
-                                <p class="text-xs text-slate-400 font-black">📊 歷史累計實質總毛利</p>
-                                <p class="text-2xl font-black text-yellow-400 font-mono mt-1">$ {{ financialData[currentStore].revenue - financialData[currentStore].cost }}</p>
+                                <p class="text-xs text-slate-400 font-black">📊 累計實質毛利淨額</p>
+                                <p class="text-2xl font-black text-yellow-400 font-mono mt-1">$ {{ (financialData[currentStore]?.revenue || 0) - (financialData[currentStore]?.cost || 0) }}</p>
                             </div>
                             <div class="text-right text-xs text-slate-400 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 font-bold">
-                                平均毛利率：<span class="text-white font-mono font-black text-sm">{{ calculateMargin }} %</span>
+                                門市平均毛利率：<span class="text-white font-mono font-black text-sm">{{ calculateMargin }} %</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="bg-[#1f2937] p-5 rounded-2xl shadow-xl border border-slate-800">
-                    <h3 class="font-black text-slate-200 mb-3 text-sm flex items-center gap-1.5">📑 當日營運異動日誌 (雲端同步)</h3>
+                    <h3 class="font-black text-slate-200 mb-3 text-sm flex items-center gap-1.5">📑 當日營運異動日誌 (雲端異步審查)</h3>
                     <div class="space-y-2.5 max-h-56 overflow-y-auto pr-1">
                         <div v-for="log in filteredLogs" :key="log.id" class="text-xs p-3 rounded-xl border leading-relaxed shadow-sm font-medium"
                             :class="log.type === 'sale' ? 'bg-[#142321] border-emerald-950 text-emerald-300' : (log.type === 'transfer' ? 'bg-[#152033] border-blue-950 text-blue-300' : 'bg-[#241c15] border-orange-950 text-orange-300')">
@@ -568,7 +578,7 @@
                             <p class="text-slate-100 font-bold whitespace-pre-line text-sm tracking-wide leading-relaxed">{{ log.detail }}</p>
                         </div>
                         <div v-if="filteredLogs.length === 0" class="text-center text-slate-500 py-8 font-bold tracking-wider text-xs">
-                            今日目前尚無任何交易日誌
+                            今日門市尚無任何交易或調撥紀錄
                         </div>
                     </div>
                 </div>
@@ -581,7 +591,7 @@
     <script>
         const { createApp, ref, computed, onMounted } = Vue;
 
-        // 🟢 您的專屬 Google Firebase 雲端通訊配置
+        // 🟢 您的專屬 Google Firebase 雲端通訊配置 (保持您的原始配置不變)
         const firebaseConfig = {
             apiKey: "AIzaSyArlPkSv6wWKaoU_9Zdatr-yp2RirVV2Mk",
             authDomain: "safe-helmet-system.firebaseapp.com",
@@ -592,14 +602,15 @@
             appId: "1:606759988097:web:9e73febf436886a5a49680"
         };
 
-        // 初始化 Firebase
+        // 初始化 Firebase 全域實例
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
+        // 系統預設商品主檔 (當資料庫完全為空時注入)
         const DEFAULT_INVENTORY = [
-            { id: 1, store: 'store_1', brand: 'SOL', category: '全罩式', model: 'SF-6', size: 'XL', color: '消光黑', stock: 5, safeStock: 3, cost: 1800, price: 2900, clearancePrice: null, image: 'https://images.unsplash.com/photo-1599819811279-d5ad9cccf838?w=150&auto=format&fit=crop&q=60' },
-            { id: 2, store: 'store_1', brand: 'SOL', category: '全罩式', model: 'SF-6', size: 'L', color: '消光黑', stock: 2, safeStock: 3, cost: 1800, price: 2900, clearancePrice: 2200, image: 'https://images.unsplash.com/photo-1599819811279-d5ad9cccf838?w=150&auto=format&fit=crop&q=60' },
-            { id: 3, store: 'store_1', brand: 'KYT', category: '3/4罩', model: 'NF-R', size: 'L', color: '選手彩繪', stock: 4, safeStock: 2, cost: 2200, price: 3500, clearancePrice: null, image: 'https://images.unsplash.com/photo-1622560480654-d96214fdc887?w=150&auto=format&fit=crop&q=60' },
+            { id: 1, store: 'store_1', brand: 'SOL', category: '全罩式', model: 'SF-6', size: 'XL', color: '消光黑', stock: 5, safeStock: 3, cost: 1800, price: 2900, clearancePrice: null, image: '' },
+            { id: 2, store: 'store_1', brand: 'SOL', category: '全罩式', model: 'SF-6', size: 'L', color: '消光黑', stock: 2, safeStock: 3, cost: 1800, price: 2900, clearancePrice: 2200, image: '' },
+            { id: 3, store: 'store_1', brand: 'KYT', category: '3/4罩', model: 'NF-R', size: 'L', color: '選手彩繪', stock: 4, safeStock: 2, cost: 2200, price: 3500, clearancePrice: null, image: '' },
             { id: 4, store: 'store_2', brand: 'EVO', category: '半罩式', model: '復古帽', size: 'M', color: '奶茶色', stock: 8, safeStock: 3, cost: 450, price: 850, clearancePrice: null, image: '' }
         ];
         
@@ -616,73 +627,85 @@
                 const fontSizeLevel = ref(localStorage.getItem('sys_zoom_level') || 'normal');
                 const isCloudConnected = ref(false);
 
+                // 圖片懸浮大圖預覽
                 const hoverImageUrl = ref('');
                 const hoverX = ref(0);
                 const hoverY = ref(0);
 
+                // 調撥模態框狀態
                 const showTransferModal = ref(false);
                 const transferItem = ref(null);
                 const transferDirection = ref('1_to_2');
                 const transferQty = ref(1);
 
+                // 小票收據列印狀態
                 const showReceiptModal = ref(false);
                 const lastReceiptData = ref({ timestamp: '', date: '', role: '', storeName: '', items: [], orderDiscount: 0, finalTotal: 0 });
 
+                // 核心響應式數據
                 const inventory = ref([]);
-                const financialData = ref(DEFAULT_FINANCIAL);
+                const financialData = ref({});
                 const logs = ref([]);
 
+                // 櫃檯出貨工作台表單
                 const saleSearchQuery = ref('');
                 const formSale = ref({ productId: '', qty: 1, discountType: 'none', discountValue: null });
                 const orderGlobalDiscount = ref(null); 
                 const saleCart = ref([]); 
                 
-                const formPurchase = ref({ brand: '', category: '全罩式', model: '', color: '', size: '', qty: null, price: null, image: '' });
+                // 進貨點收工作台表單 (優化精算：補上 cost、safeStock)
+                const formPurchase = ref({ brand: '', category: '全罩式', model: '', color: '', size: '', qty: null, price: null, cost: null, safeStock: 2, image: '' });
                 const purchaseCart = ref([]); 
 
-                // 24H 雲端即時監聽核心
+                // 實時字體大小像素計算控制
+                const currentFontSizePx = computed(() => {
+                    if (fontSizeLevel.value === 'small') return '12px';
+                    if (fontSizeLevel.value === 'large') return '17px';
+                    return '14px';
+                });
+
+                // 24H 雲端即時動態監聽
                 onMounted(() => {
-                    // 1. 監聽庫存
+                    // 1. 監聽實時庫存
                     database.ref('pos_system/inventory').on('value', (snapshot) => {
                         isCloudConnected.value = true;
                         if (snapshot.exists()) {
-                            inventory.value = snapshot.val();
+                            inventory.value = snapshot.val() || [];
                         } else {
-                            // 第一次使用，上傳預設初始數據
                             database.ref('pos_system/inventory').set(DEFAULT_INVENTORY);
                         }
                     }, () => { isCloudConnected.value = false; });
 
                     // 2. 監聽財務
                     database.ref('pos_system/financial').on('value', (snapshot) => {
-                        if (snapshot.exists()) { financialData.value = snapshot.val(); } else {
+                        if (snapshot.exists()) { 
+                            financialData.value = snapshot.val() || DEFAULT_FINANCIAL; 
+                        } else {
                             database.ref('pos_system/financial').set(DEFAULT_FINANCIAL);
                         }
                     });
 
-                    // 3. 監聽日誌
+                    // 3. 監聽異動日誌
                     database.ref('pos_system/logs').on('value', (snapshot) => {
                         if (snapshot.exists()) {
                             const rawLogs = snapshot.val();
                             logs.value = Array.isArray(rawLogs) ? rawLogs : Object.values(rawLogs);
+                        } else {
+                            logs.value = [];
                         }
                     });
                 });
 
-                // 雲端同步寫入函式
-                const pushAllToCloud = () => {
-                    database.ref('pos_system/inventory').set(JSON.parse(JSON.stringify(inventory.value)));
-                    database.ref('pos_system/financial').set(JSON.parse(JSON.stringify(financialData.value)));
-                    database.ref('pos_system/logs').set(JSON.parse(JSON.stringify(logs.value)));
-                };
-
-                const updateSingleProductCloud = (item) => {
-                    const idx = inventory.value.findIndex(p => p.id === item.id);
-                    if(idx !== -1) {
-                        database.ref(`pos_system/inventory/${idx}`).set(JSON.parse(JSON.stringify(item)));
-                        database.ref('pos_system/financial').set(JSON.parse(JSON.stringify(financialData.value)));
-                        database.ref('pos_system/logs').set(JSON.parse(JSON.stringify(logs.value)));
-                    }
+                // 封裝安全的全域 Firebase 原子性操作，防止多店同時操作相互覆寫
+                const runFirebaseTransaction = (path, updateFn, callback) => {
+                    database.ref(path).transaction(updateFn, (error, committed, snapshot) => {
+                        if (error) {
+                            console.error('Firebase Transaction 失敗:', error);
+                            alert('雲端資料同步發生衝突，請重新操作！');
+                        } else if (committed && callback) {
+                            callback(snapshot.val());
+                        }
+                    });
                 };
 
                 const changeZoom = (level) => {
@@ -690,22 +713,24 @@
                     localStorage.setItem('sys_zoom_level', level);
                 };
 
-                const zoomClass = computed(() => {
-                    if (fontSizeLevel.value === 'small') return 'text-xs';
-                    if (fontSizeLevel.value === 'large') return '[&_*]:!text-[103%]'; 
-                    return 'text-base';
-                });
-
-                const resetToDefault = () => {
-                    if(confirm("警告：此操作將重置【雲端資料庫】所有商品數據，其他分店也會同步被洗掉，確定嗎？")){
-                        database.ref('pos_system/inventory').set(DEFAULT_INVENTORY);
-                        database.ref('pos_system/financial').set(DEFAULT_FINANCIAL);
-                        database.ref('pos_system/logs').remove();
-                        alert("雲端資料庫初始化完畢！");
+                const updateSingleProductCloud = (item) => {
+                    const idx = inventory.value.findIndex(p => p && p.id === item.id);
+                    if(idx !== -1) {
+                        database.ref(`pos_system/inventory/${idx}`).set(JSON.parse(JSON.stringify(item)));
                     }
                 };
 
-                const storeName = computed(() => currentStore.value === 'store_1' ? '一號店 (總店)' : '二號店 (學區分店)');
+                const resetToDefault = () => {
+                    if(confirm("⚠️ 老闆請注意：此操作將重置【雲端資料庫】所有商品、財務與營運數據，分店亦會同步洗掉，確定執行嗎？")){
+                        database.ref('pos_system/inventory').set(DEFAULT_INVENTORY);
+                        database.ref('pos_system/financial').set(DEFAULT_FINANCIAL);
+                        database.ref('pos_system/logs').remove();
+                        alert("雲端資料庫已恢復初始原廠設定！");
+                    }
+                };
+
+                // 門市中文化字串
+                const storeName = computed(() => currentStore.value === 'store_1' ? '一號店 (內埔總店)' : '二號店 (學區分店)');
                 
                 const availableBrands = computed(() => {
                     if(!inventory.value) return [];
@@ -760,10 +785,11 @@
                 const totalCountByBrand = (brand) => {
                     if(!inventory.value) return 0;
                     const storeItems = inventory.value.filter(item => item && item.store === currentStore.value);
-                    if (brand === 'ALL') return storeItems.reduce((acc, item) => acc + item.stock, 0);
-                    return storeItems.filter(item => item.brand.toUpperCase() === brand).reduce((acc, item) => acc + item.stock, 0);
+                    if (brand === 'ALL') return storeItems.reduce((acc, item) => acc + (item.stock || 0), 0);
+                    return storeItems.filter(item => item.brand.toUpperCase() === brand).reduce((acc, item) => acc + (item.stock || 0), 0);
                 };
 
+                // 進貨輔助歷史下拉聯想機制
                 const historyBrands = computed(() => {
                     if(!inventory.value) return [];
                     const brands = inventory.value.map(item => item && item.brand.trim().toUpperCase());
@@ -796,6 +822,7 @@
                     if (sample) {
                         formPurchase.value.category = sample.category;
                         formPurchase.value.price = sample.price;
+                        formPurchase.value.cost = sample.cost;
                         formPurchase.value.image = sample.image || '';
                     }
                 };
@@ -827,7 +854,7 @@
 
                 const calculateMargin = computed(() => {
                     const data = financialData.value[currentStore.value];
-                    if (!data || data.revenue === 0) return 0;
+                    if (!data || !data.revenue || data.revenue === 0) return '0.0';
                     return (((data.revenue - data.cost) / data.revenue) * 100).toFixed(1);
                 });
 
@@ -838,9 +865,11 @@
                 });
 
                 const mockLastYearData = () => {
-                    financialData.value[currentStore.value].lastYearRevenue = currentStore.value === 'store_1' ? 420000 : 180000;
-                    database.ref('pos_system/financial').set(JSON.parse(JSON.stringify(financialData.value)));
-                    alert("⚙️ 基準基線業績注入成功！");
+                    runFirebaseTransaction(`pos_system/financial/${currentStore.value}`, (currentData) => {
+                        if (!currentData) currentData = { revenue: 0, cost: 0, todayRevenue: 0, todayCost: 0, monthRevenue: 0, yearRevenue: 0 };
+                        currentData.lastYearRevenue = currentStore.value === 'store_1' ? 420000 : 180000;
+                        return currentData;
+                    }, () => { alert("⚙️ 基準基線業績注入成功！"); });
                 };
 
                 const showBigImage = (event, imgUrl) => { hoverImageUrl.value = imgUrl; hoverX.value = event.clientX; hoverY.value = event.clientY; };
@@ -859,6 +888,7 @@
                     return target ? target.stock : 0;
                 };
 
+                // 跨店調撥安全原子操作 (防止覆寫災情)
                 const executeTransfer = () => {
                     const item = transferItem.value;
                     const qty = transferQty.value;
@@ -866,51 +896,65 @@
 
                     const fromStore = transferDirection.value === '1_to_2' ? 'store_1' : 'store_2';
                     const toStore = transferDirection.value === '1_to_2' ? 'store_2' : 'store_1';
-                    const fromName = fromStore === 'store_1' ? '一號店' : '二號店';
-                    const toName = toStore === 'store_1' ? '一號店' : '二號店';
+                    const fromName = fromStore === 'store_1' ? '內埔總店' : '學區分店';
+                    const toName = toStore === 'store_1' ? '內埔總店' : '學區分店';
 
-                    const sourceProd = inventory.value.find(p => p && p.model.toLowerCase() === item.model.toLowerCase() && p.color.toLowerCase() === item.color.toLowerCase() && p.size.toLowerCase() === item.size.toLowerCase() && p.store === fromStore);
-                    
-                    if(!sourceProd || sourceProd.stock < qty) {
-                        alert(`【${fromName}】現場數量不足！`);
-                        return;
-                    }
+                    database.ref('pos_system').transaction((root) => {
+                        if (!root) return root;
+                        if (!root.inventory) root.inventory = [];
+                        
+                        const sourceProd = root.inventory.find(p => p && p.model.toLowerCase() === item.model.toLowerCase() && p.color.toLowerCase() === item.color.toLowerCase() && p.size.toLowerCase() === item.size.toLowerCase() && p.store === fromStore);
+                        
+                        if(!sourceProd || sourceProd.stock < qty) {
+                            return; // 數量不足，直接取消交易
+                        }
 
-                    let destProd = inventory.value.find(p => p && p.model.toLowerCase() === item.model.toLowerCase() && p.color.toLowerCase() === item.color.toLowerCase() && p.size.toLowerCase() === item.size.toLowerCase() && p.store === toStore);
-                    
-                    sourceProd.stock -= qty;
-                    if(destProd) { destProd.stock += qty; } else {
-                        inventory.value.push({
-                            id: inventory.value.length + 1, store: toStore, brand: item.brand, category: item.category, model: item.model, size: item.size, color: item.color, stock: qty, safeStock: 2, cost: item.cost, price: item.price, clearancePrice: null, image: item.image
+                        let destProd = root.inventory.find(p => p && p.model.toLowerCase() === item.model.toLowerCase() && p.color.toLowerCase() === item.color.toLowerCase() && p.size.toLowerCase() === item.size.toLowerCase() && p.store === toStore);
+                        
+                        sourceProd.stock -= qty;
+                        if(destProd) { 
+                            destProd.stock += qty; 
+                        } else {
+                            const newId = root.inventory.length ? Math.max(...root.inventory.map(p => p?p.id:0)) + 1 : 1;
+                            root.inventory.push({
+                                id: newId, store: toStore, brand: item.brand, category: item.category, model: item.model, size: item.size, color: item.color, stock: qty, safeStock: 2, cost: item.cost, price: item.price, clearancePrice: null, image: item.image
+                            });
+                        }
+
+                        if(!root.logs) root.logs = [];
+                        root.logs.push({
+                            id: Date.now(), store: currentStore.value, storeName: storeName.value, role: '老闆模式', type: 'transfer',
+                            detail: `🚚 跨店調撥：[${item.brand}] ${item.model} (${item.color}/${item.size}) 自【${fromName}】調往【${toName}】 ${qty} 頂。`,
+                            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
                         });
-                    }
 
-                    logs.value.push({
-                        id: Date.now(), store: currentStore.value, storeName: storeName.value, role: '老闆模式', type: 'transfer',
-                        detail: `🚚 跨店調撥：[${item.brand}] ${item.model} (${item.color}/${item.size}) 自【${fromName}】調往【${toName}】 ${qty} 頂。`,
-                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                        return root;
+                    }, (error, committed) => {
+                        if (!committed) {
+                            alert(`調撥失敗！可能原因：【${fromName}】現貨數量不足，或雲端連線同步衝突。`);
+                        } else {
+                            showTransferModal.value = false;
+                            alert('🎉 跨店庫存調撥成功，兩店庫存秒同步！');
+                        }
                     });
-
-                    pushAllToCloud();
-                    showTransferModal.value = false;
                 };
 
                 const addToSaleCart = () => {
                     const { productId, qty, discountType, discountValue } = formSale.value;
-                    if(!productId || qty <= 0) { alert("請選取規格與數量！"); return; }
+                    if(!productId || qty <= 0) { alert("請選取安全帽現貨規格與出庫數量！"); return; }
                     
                     const prod = inventory.value.find(p => p && p.id === productId);
                     if(!prod) return;
 
                     const alreadyInCartQty = saleCart.value.filter(c => c.id === productId).reduce((acc, cur) => acc + cur.qty, 0);
                     if(prod.stock < (alreadyInCartQty + qty)) {
-                        alert(`現貨庫存不足！`);
+                        alert(`門市現場現貨不足！（現有:${prod.stock}頂, 購物車已暫存:${alreadyInCartQty}頂）`);
                         return;
                     }
 
-                    let discountDesc = prod.clearancePrice ? "出清價" : "原價";
-                    if(discountType === 'percent') discountDesc = `${discountValue} 折`;
-                    if(discountType === 'minus') discountDesc = `折現 $${discountValue}`;
+                    let discountDesc = prod.clearancePrice ? "出清特價" : "標準價";
+                    if(discountType === 'percent') discountDesc = `現場折讓 ${discountValue} 折`;
+                    if(discountType === 'minus') discountDesc = `現場直折 $${discountValue}`;
 
                     saleCart.value.push({
                         id: prod.id, brand: prod.brand, model: prod.model, color: prod.color, size: prod.size, image: prod.image, qty: qty, singlePrice: calculatedSinglePrice.value, cost: prod.cost, discountDesc: discountDesc
@@ -923,62 +967,90 @@
                 const removeFromSaleCart = (index) => { saleCart.value.splice(index, 1); };
                 const clearSaleCart = () => { saleCart.value = []; orderGlobalDiscount.value = null; };
 
+                // 核心：櫃檯確立結帳銷貨原子操作 (杜絕多店搶庫存 Bug)
                 const submitBatchSale = () => {
                     if (saleCart.value.length === 0) return;
-                    
-                    let logDetails = "櫃檯結帳出貨明細：\n";
-                    let totalOrderRevenueBeforeDiscount = 0;
-                    let totalOrderCost = 0;
 
-                    // 再次驗證雲端實時庫存
-                    for(let cartItem of saleCart.value) {
-                        const originalProd = inventory.value.find(p => p && p.id === cartItem.id);
-                        if(!originalProd || originalProd.stock < cartItem.qty) {
-                            alert(`庫存已被別家店搶先扣除，請重新確認！`);
-                            return;
-                        }
-                    }
-
-                    saleCart.value.forEach(cartItem => {
-                        const originalProd = inventory.value.find(p => p && p.id === cartItem.id);
-                        originalProd.stock -= cartItem.qty;
-
-                        totalOrderRevenueBeforeDiscount += (cartItem.singlePrice * cartItem.qty);
-                        totalOrderCost += (cartItem.cost * cartItem.qty);
-                        logDetails += `・[${cartItem.brand}] ${cartItem.model} (${cartItem.color}/${cartItem.size}) x${cartItem.qty} 頂\n`;
-                    });
-
+                    // 複製購物車明細，防止非同步非同步
+                    const currentCartItems = [...saleCart.value];
                     const globalDiscount = orderGlobalDiscount.value || 0;
-                    const finalOrderRevenue = Math.max(0, totalOrderRevenueBeforeDiscount - globalDiscount);
 
-                    financialData.value[currentStore.value].revenue += finalOrderRevenue;
-                    financialData.value[currentStore.value].cost += totalOrderCost;
-                    financialData.value[currentStore.value].todayRevenue += finalOrderRevenue;
-                    financialData.value[currentStore.value].todayCost += totalOrderCost;
-                    financialData.value[currentStore.value].monthRevenue += finalOrderRevenue;
-                    financialData.value[currentStore.value].yearRevenue += finalOrderRevenue;
+                    database.ref('pos_system').transaction((root) => {
+                        if (!root) return root;
+                        if (!root.inventory) root.inventory = [];
+                        if (!root.financial) root.financial = DEFAULT_FINANCIAL;
 
-                    if (globalDiscount > 0) logDetails += `🧧 整單折扣：- $ ${globalDiscount}\n`;
-                    logDetails += `💰 實收：$ ${finalOrderRevenue}`;
+                        let totalOrderRevenueBeforeDiscount = 0;
+                        let totalOrderCost = 0;
+                        let logDetails = "櫃檯銷貨出庫明細：\n";
 
-                    const currentRoleName = currentRole.value === 'admin' ? '老闆模式' : '員工模式';
-                    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                    const dateStr = new Date().toLocaleDateString() + ' ' + timeStr;
+                        // 進行雲端實時庫存扣減校對
+                        for(let cartItem of currentCartItems) {
+                            const originalProd = root.inventory.find(p => p && p.id === cartItem.id);
+                            if(!originalProd || originalProd.stock < cartItem.qty) {
+                                return; // 庫存被搶先一步扣減，引發中斷
+                            }
+                        }
 
-                    if(!logs.value) logs.value = [];
-                    logs.value.push({
-                        id: Date.now(), store: currentStore.value, storeName: storeName.value, role: currentRoleName, type: 'sale', detail: logDetails.trim(), time: timeStr
+                        // 真正執行扣減與財務累加
+                        currentCartItems.forEach(cartItem => {
+                            const originalProd = root.inventory.find(p => p && p.id === cartItem.id);
+                            originalProd.stock -= cartItem.qty;
+
+                            totalOrderRevenueBeforeDiscount += (cartItem.singlePrice * cartItem.qty);
+                            totalOrderCost += ((originalProd.cost || cartItem.cost) * cartItem.qty);
+                            logDetails += `・[${cartItem.brand}] ${cartItem.model} (${cartItem.color}/${cartItem.size}) x${cartItem.qty} 頂\n`;
+                        });
+
+                        const finalOrderRevenue = Math.max(0, totalOrderRevenueBeforeDiscount - globalDiscount);
+
+                        if(!root.financial[currentStore.value]) root.financial[currentStore.value] = DEFAULT_FINANCIAL[currentStore.value];
+                        
+                        let storeFin = root.financial[currentStore.value];
+                        storeFin.revenue = (storeFin.revenue || 0) + finalOrderRevenue;
+                        storeFin.cost = (storeFin.cost || 0) + totalOrderCost;
+                        storeFin.todayRevenue = (storeFin.todayRevenue || 0) + finalOrderRevenue;
+                        storeFin.todayCost = (storeFin.todayCost || 0) + totalOrderCost;
+                        storeFin.monthRevenue = (storeFin.monthRevenue || 0) + finalOrderRevenue;
+                        storeFin.yearRevenue = (storeFin.yearRevenue || 0) + finalOrderRevenue;
+
+                        if (globalDiscount > 0) logDetails += `🧧 整單現場去零頭讓利：- $ ${globalDiscount}\n`;
+                        logDetails += `💰 實收總計：$ ${finalOrderRevenue}`;
+
+                        const currentRoleName = currentRole.value === 'admin' ? '老闆模式' : '員工模式';
+                        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+                        if(!root.logs) root.logs = [];
+                        root.logs.push({
+                            id: Date.now(), store: currentStore.value, storeName: currentStore.value === 'store_1' ? '一號店 (內埔總店)' : '二號店 (學區分店)', role: currentRoleName, type: 'sale', detail: logDetails.trim(), time: timeStr
+                        });
+
+                        return root;
+                    }, (error, committed, snapshot) => {
+                        if (!committed) {
+                            alert('❌ 結帳失敗！原因：商品在店面剛剛被售出，庫存不足，或網路通訊延遲。');
+                        } else {
+                            // 結帳成功，彈出列印收據
+                            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                            const dateStr = new Date().toLocaleDateString() + ' ' + timeStr;
+                            const totalOrderRevenueBeforeDiscount = currentCartItems.reduce((acc, item) => acc + (item.singlePrice * item.qty), 0);
+                            const finalOrderRevenue = Math.max(0, totalOrderRevenueBeforeDiscount - globalDiscount);
+
+                            lastReceiptData.value = {
+                                timestamp: Date.now().toString().slice(-6), 
+                                date: dateStr, 
+                                role: currentRole.value === 'admin' ? '老闆模式' : '員工模式', 
+                                storeName: storeName.value, 
+                                items: currentCartItems, 
+                                orderDiscount: globalDiscount, 
+                                finalTotal: finalOrderRevenue
+                            };
+
+                            saleCart.value = [];
+                            orderGlobalDiscount.value = null;
+                            showReceiptModal.value = true;
+                        }
                     });
-
-                    lastReceiptData.value = {
-                        timestamp: Date.now().toString().slice(-6), date: dateStr, role: currentRoleName, storeName: storeName.value, items: [...saleCart.value], orderDiscount: globalDiscount, finalTotal: finalOrderRevenue
-                    };
-
-                    saleCart.value = [];
-                    orderGlobalDiscount.value = null;
-                    
-                    pushAllToCloud();
-                    showReceiptModal.value = true;
                 };
 
                 const printReceipt = () => { window.print(); };
@@ -986,6 +1058,10 @@
                 const uploadImage = (event) => {
                     const file = event.target.files[0];
                     if (file) {
+                        if (file.size > 500 * 1024) {
+                            alert("圖片尺寸過大，請上傳 500KB 以下的圖片以優化雲端傳輸速率！");
+                            return;
+                        }
                         const reader = new FileReader();
                         reader.onload = (e) => { formPurchase.value.image = e.target.result; };
                         reader.readAsDataURL(file);
@@ -994,7 +1070,10 @@
 
                 const addToPurchaseCart = () => {
                     const f = formPurchase.value;
-                    if (!f.brand || !f.model || !f.color || !f.size || !f.qty || f.qty <= 0) { alert('進貨參數未填完整！'); return; }
+                    if (!f.brand || !f.model || !f.color || !f.size || !f.qty || f.qty <= 0 || !f.price || !f.cost) { 
+                        alert('進貨校對參數未填完整（品牌、型號、顏色、尺寸、數量、零售價與真實成本皆為必填）！'); 
+                        return; 
+                    }
 
                     const finalBrand = f.brand.trim().toUpperCase();
                     const finalModel = f.model.trim();
@@ -1003,52 +1082,73 @@
 
                     const existing = purchaseCart.value.find(item => item.brand.toLowerCase() === finalBrand.toLowerCase() && item.model.toLowerCase() === finalModel.toLowerCase() && item.color.toLowerCase() === finalColor.toLowerCase() && item.size.toLowerCase() === finalSize.toLowerCase());
 
-                    if (existing) { existing.qty += f.qty; } else {
+                    if (existing) { 
+                        existing.qty += f.qty; 
+                    } else {
                         purchaseCart.value.push({
-                            brand: finalBrand, category: f.category, model: finalModel, color: finalColor, size: finalSize, qty: f.qty, price: f.price || 2000, image: f.image
+                            brand: finalBrand, category: f.category, model: finalModel, color: finalColor, size: finalSize, qty: f.qty, price: f.price, cost: f.cost, safeStock: f.safeStock || 2, image: f.image
                         });
                     }
-                    formPurchase.value = { brand: '', category: '全罩式', model: '', color: '', size: '', qty: null, price: null, image: '' };
+                    // 重置表單
+                    formPurchase.value = { brand: '', category: '全罩式', model: '', color: '', size: '', qty: null, price: null, cost: null, safeStock: 2, image: '' };
                 };
 
                 const removeFromPurchaseCart = (index) => { purchaseCart.value.splice(index, 1); };
 
+                // 批次到貨點收上架原子操作
                 const submitBatchPurchase = () => {
                     if (purchaseCart.value.length === 0) return;
-                    let logDetails = "批次點收進貨：\n";
+                    const currentPurchaseItems = [...purchaseCart.value];
 
-                    purchaseCart.value.forEach(cartItem => {
-                        const matchProduct = inventory.value.find(p => p && p.store === currentStore.value && p.model.toLowerCase() === cartItem.model.toLowerCase() && p.color.toLowerCase() === cartItem.color.toLowerCase() && p.size.toLowerCase() === cartItem.size.toLowerCase());
+                    database.ref('pos_system').transaction((root) => {
+                        if (!root) return root;
+                        if (!root.inventory) root.inventory = [];
+                        if (!root.logs) root.logs = [];
 
-                        if (matchProduct) {
-                            matchProduct.stock += cartItem.qty; if (cartItem.image) matchProduct.image = cartItem.image;
-                        } else {
-                            inventory.value.push({
-                                id: inventory.value.length + 1, store: currentStore.value, brand: cartItem.brand, category: cartItem.category, model: cartItem.model, size: cartItem.size, color: cartItem.color, stock: cartItem.qty, safeStock: 2, cost: Math.round(cartItem.price * 0.6), price: cartItem.price, clearancePrice: null, image: cartItem.image
-                            });
+                        let logDetails = "批次點收新貨到庫：\n";
+
+                        currentPurchaseItems.forEach(cartItem => {
+                            const matchProduct = root.inventory.find(p => p && p.store === currentStore.value && p.model.toLowerCase() === cartItem.model.toLowerCase() && p.color.toLowerCase() === cartItem.color.toLowerCase() && p.size.toLowerCase() === cartItem.size.toLowerCase());
+
+                            if (matchProduct) {
+                                matchProduct.stock = (matchProduct.stock || 0) + cartItem.qty;
+                                matchProduct.price = cartItem.price;
+                                matchProduct.cost = cartItem.cost;
+                                if (cartItem.image) matchProduct.image = cartItem.image;
+                            } else {
+                                const newId = root.inventory.length ? Math.max(...root.inventory.map(p => p?p.id:0)) + 1 : 1;
+                                root.inventory.push({
+                                    id: newId, store: currentStore.value, brand: cartItem.brand, category: cartItem.category, model: cartItem.model, size: cartItem.size, color: cartItem.color, stock: cartItem.qty, safeStock: cartItem.safeStock, cost: cartItem.cost, price: cartItem.price, clearancePrice: null, image: cartItem.image
+                                });
+                            }
+                            logDetails += `・[${cartItem.brand}] ${cartItem.model} (${cartItem.color}/${cartItem.size}) +${cartItem.qty}頂\n`;
+                        });
+
+                        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                        root.logs.push({
+                            id: Date.now(), store: currentStore.value, storeName: currentStore.value === 'store_1' ? '一號店 (內埔總店)' : '二號店 (學區分店)', role: currentRole.value === 'admin' ? '老闆模式' : '員工模式', type: 'purchase', detail: logDetails.trim(), time: timeStr
+                        });
+
+                        return root;
+                    }, (error, committed) => {
+                        if (committed) {
+                            purchaseCart.value = [];
+                            alert('🎉 雲端批量上架成功！內埔/學區雙店已即時完成同步。');
                         }
-                        logDetails += `・[${cartItem.brand}] ${cartItem.model} +${cartItem.qty}頂\n`;
                     });
-
-                    if(!logs.value) logs.value = [];
-                    logs.value.push({
-                        id: Date.now(), store: currentStore.value, storeName: storeName.value, role: currentRole.value === 'admin' ? '老闆模式' : '員工模式', type: 'purchase', detail: logDetails.trim(), time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-                    });
-
-                    purchaseCart.value = [];
-                    pushAllToCloud();
-                    alert('🎉 雲端批量上架成功！');
                 };
 
+                const clearPurchaseCart = () => { purchaseCart.value = []; };
+
                 return {
-                    currentStore, currentRole, selectedBrandTag, fontSizeLevel, zoomClass, hoverImageUrl, hoverX, hoverY, changeZoom,
+                    currentStore, currentRole, selectedBrandTag, fontSizeLevel, currentFontSizePx, hoverImageUrl, hoverX, hoverY, changeZoom,
                     showTransferModal, transferItem, transferDirection, transferQty, openTransferModal, executeTransfer, getStockInStore,
                     showReceiptModal, lastReceiptData, printReceipt, isCloudConnected, updateSingleProductCloud,
                     storeName, availableBrands, sortedInventoryAll, filteredSaleInventory, sortedAndFilteredInventory, lowStockCount, filteredLogs, financialData,
                     historyBrands, matchedHistoryModels, matchedHistoryColors, handleBrandChange, handleModelChange,
                     saleSearchQuery, formSale, orderGlobalDiscount, saleCart, addToSaleCart, removeFromSaleCart, clearSaleCart, saleCartTotalBeforeGlobal, saleCartTotalFinal, submitBatchSale,
                     formPurchase, purchaseCart, selectedProductStandardPrice, calculatedSinglePrice, calculateMargin, calculateYearGrowth, mockLastYearData, totalCountByBrand, showBigImage, hideBigImage,
-                    uploadImage, addToPurchaseCart, removeFromPurchaseCart, submitBatchPurchase, resetToDefault
+                    uploadImage, addToPurchaseCart, removeFromPurchaseCart, submitBatchPurchase, resetToDefault, clearPurchaseCart
                 };
             }
         }).mount('#app');
