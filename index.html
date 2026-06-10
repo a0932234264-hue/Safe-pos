@@ -58,6 +58,7 @@
 
     <div id="app" :style="{ '--base-font-size': currentFontSizePx }" class="min-h-screen flex flex-col relative pb-12 ts-all">
         
+        <!-- 登入鎖定遮罩 -->
         <div v-if="!isLoggedIn" class="fixed inset-0 z-50 bg-[#0f172a] flex items-center justify-center p-4">
             <div class="bg-[#1e293b] border border-slate-700 p-6 md:p-8 rounded-2xl shadow-2xl max-w-md w-full border-t-4 border-t-blue-500">
                 <div class="text-center mb-6">
@@ -90,12 +91,15 @@
             </div>
         </div>
 
+        <!-- 主要系統內容 -->
         <template v-if="isLoggedIn">
+            <!-- 雲端狀態條 -->
             <div class="no-print w-full text-center text-xs py-2 px-3 font-black tracking-widest transition-all shadow-inner leading-normal"
                  :class="isCloudConnected ? 'bg-emerald-950 text-emerald-400 border-b border-emerald-900' : 'bg-red-950 text-red-400 border-b border-red-900 animate-pulse'">
                 {{ isCloudConnected ? '● 🟢 雲端同步中 ｜ 塞弗安全帽（Safeer Helmet）雲端資料庫已即時互聯' : '● ❌ 雲端連線中斷，請檢查門市網路環境' }}
             </div>
 
+            <!-- 懸浮大圖預覽 -->
             <div v-if="hoverImageUrl" 
                  :style="{ top: hoverY + 15 + 'px', left: hoverX + 15 + 'px' }" 
                  class="fixed-preview fixed z-50 bg-[#1f2937] p-2 rounded-xl shadow-2xl border border-slate-700 pointer-events-none">
@@ -103,6 +107,7 @@
                 <div class="text-center text-xs text-slate-400 mt-2 font-bold tracking-wider">📦 商品識別大圖</div>
             </div>
 
+            <!-- 庫存調撥彈窗 -->
             <div v-if="showTransferModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 md:p-4 overflow-y-auto">
                 <div class="bg-[#1f2937] border border-slate-700 rounded-2xl shadow-2xl p-4 md:p-6 max-w-lg w-full my-auto">
                     <h4 class="text-lg md:text-xl font-bold text-blue-400 mb-2 flex items-center gap-2">🔀 跨店庫存調撥 (權限控管)</h4>
@@ -131,6 +136,7 @@
                 </div>
             </div>
 
+            <!-- 銷售簽單明細彈窗 -->
             <div v-if="showReceiptModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 md:p-4 overflow-y-auto">
                 <div class="bg-[#1f2937] border border-slate-700 rounded-2xl shadow-2xl p-4 md:p-6 max-w-md w-full my-auto">
                     <div class="flex justify-between items-center border-b border-slate-700 pb-3 mb-4 no-print">
@@ -191,6 +197,7 @@
                 </div>
             </div>
 
+            <!-- 主頂部導航列 -->
             <header class="bg-[#1f2937] text-slate-100 p-3 md:p-4 shadow-xl border-b border-slate-800 flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center sticky top-0 z-40 backdrop-blur-md bg-opacity-95 no-print">
                 <div class="flex items-center justify-between sm:justify-start space-x-3 w-full sm:w-auto">
                     <div class="flex items-center space-x-2">
@@ -224,8 +231,10 @@
                 </div>
             </header>
 
+            <!-- 儀表板核心區塊 -->
             <main class="flex-1 p-3 md:p-6 max-w-[1600px] w-full mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 no-print">
                 
+                <!-- 左側與中央：安全帽即時盤點管理表 -->
                 <div class="lg:col-span-2 space-y-4 md:space-y-6">
                     <div class="bg-[#1f2937] p-4 md:p-6 rounded-2xl shadow-xl border border-slate-800">
                         <div class="border-b border-slate-700 pb-4 mb-4">
@@ -258,6 +267,7 @@
                             </div>
                         </div>
 
+                        <!-- 商品資料表格 -->
                         <div class="mobile-table-container overflow-x-auto w-full">
                             <table class="w-full text-left border-collapse min-w-[650px] md:min-w-0">
                                 <thead>
@@ -267,7 +277,7 @@
                                         <th class="p-3 md:p-4 text-right text-sm md:text-base" style="width: 130px;">現貨庫存</th>
                                         <th class="p-3 md:p-4 text-right text-sm md:text-base" v-if="currentRole === 'admin' || sysSettings.allowStaffViewCost" style="width: 100px;">進價成本</th>
                                         <th class="p-3 md:p-4 text-right text-sm md:text-base" style="width: 150px;">對外零售價</th>
-                                        <th class="p-3 md:p-4 text-center text-sm md:text-base rounded-r-xl" style="width: 120px;">營運狀態</th>
+                                        <th class="p-3 md:p-4 text-center text-sm md:text-base rounded-r-xl" style="width: 120px;">操作/營運</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-slate-800/60">
@@ -289,18 +299,25 @@
                                             <div class="text-xs font-medium text-slate-400 mt-0.5">外觀：<span class="text-slate-200 font-bold">{{ item.color }}</span> ｜ 尺碼：<span class="text-yellow-400 font-black text-xs md:text-base bg-yellow-950/40 px-1.5 py-0.5 rounded border border-yellow-900/30">{{ item.size }}</span></div>
                                         </td>
                                         
+                                        <!-- 現貨庫存 (老闆可直改，員工僅檢視) -->
                                         <td class="p-3 md:p-4 text-right font-mono">
                                             <div v-if="currentRole === 'admin'" class="flex items-center justify-end space-x-1">
                                                 <input type="number" v-model.number="item.stock" @change="updateSingleProductCloud(item)" class="w-14 md:w-20 p-1.5 bg-[#111827] border-2 border-slate-700 rounded-lg text-right text-sm md:text-base text-white font-black focus:outline-none focus:border-blue-500">
                                                 <span class="text-xs text-slate-400 font-bold">頂</span>
                                             </div>
-                                            <div v-else class="font-black text-sm md:text-lg" :class="item.stock <= item.safeStock ? 'text-red-400 bg-red-950/40 px-2 py-1 rounded-lg border border-red-900/30 inline-block' : 'text-slate-200'">
-                                                {{ item.stock }} 頂
+                                            <div v-else class="text-right">
+                                                <span class="font-black text-sm md:text-lg" :class="item.stock <= item.safeStock ? 'text-red-400 bg-red-950/40 px-2 py-1 rounded-lg border border-red-900/30 inline-block' : 'text-slate-200'">
+                                                    {{ item.stock }} 頂
+                                                </span>
                                             </div>
                                         </td>
 
-                                        <td class="p-3 md:p-4 text-right text-slate-300 font-mono font-black text-sm md:text-base" v-if="currentRole === 'admin' || sysSettings.allowStaffViewCost">$ {{ item.cost }}</td>
+                                        <!-- 進價成本 -->
+                                        <td class="p-3 md:p-4 text-right text-slate-300 font-mono font-black text-sm md:text-base" v-if="currentRole === 'admin' || sysSettings.allowStaffViewCost">
+                                            $ {{ item.cost }}
+                                        </td>
                                         
+                                        <!-- 對外零售價 -->
                                         <td class="p-3 md:p-4 text-right font-mono">
                                             <div v-if="currentRole === 'admin'" class="space-y-1 text-xs">
                                                 <div class="flex items-center justify-end space-x-1">
@@ -320,22 +337,23 @@
                                             </div>
                                         </td>
 
-                                        <td class="p-3 md:p-4 text-center space-y-1">
+                                        <!-- 營運與前台收銀追加 -->
+                                        <td class="p-3 md:p-4 text-center space-y-2">
                                             <div v-if="item.clearancePrice" class="bg-red-950/60 border border-red-900/50 text-red-400 text-[10px] px-1.5 py-0.5 rounded-full font-black tracking-wider w-full block text-center">
-                                                🔥 促銷
+                                                🔥 促銷中
                                             </div>
-                                            <div class="flex flex-col gap-1 items-center">
-                                                <span v-if="item.stock <= item.safeStock" class="bg-amber-950 text-amber-400 border border-amber-900/40 text-[10px] px-2 py-0.5 rounded-md font-black w-full block text-center shadow-inner">量低</span>
-                                                <span v-else class="bg-slate-800 text-slate-300 text-[10px] px-2 py-0.5 rounded-md font-bold w-full block text-center">穩定</span>
-                                                
-                                                <button v-if="currentRole === 'admin' || sysSettings.allowStaffTransfer" @click="openTransferModal(item)" class="bg-blue-950/80 text-blue-400 border border-blue-900/60 hover:bg-blue-900 text-[10px] font-black py-1 rounded-md transition w-full mt-0.5">
-                                                    調貨
+                                            <button @click="addToCart(item)" :disabled="item.stock <= 0" :class="item.stock > 0 ? 'bg-emerald-600 hover:bg-emerald-500 text-white':'bg-slate-800 text-slate-500 cursor-not-allowed'" class="w-full text-xs font-black py-1.5 rounded-lg transition shadow">
+                                                {{ item.stock > 0 ? '🛒 售出收銀' : '❌ 已售罄' }}
+                                            </button>
+                                            <div class="flex gap-1 justify-center">
+                                                <button v-if="currentRole === 'admin' || sysSettings.allowStaffTransfer" @click="openTransferModal(item)" class="bg-blue-950/80 text-blue-400 border border-blue-900/60 hover:bg-blue-900 text-[10px] font-black py-1 rounded-md transition w-full">
+                                                    跨店調貨
                                                 </button>
                                             </div>
                                         </td>
                                     </tr>
                                     <tr v-if="sortedAndFilteredInventory.length === 0">
-                                        <td colspan="7" class="p-8 text-center text-slate-500 font-bold">沒有符合當前篩選條件的安全帽商品</td>
+                                        <td colspan="6" class="p-8 text-center text-slate-500 font-bold">沒有符合當前篩選條件的安全帽商品</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -343,8 +361,10 @@
                     </div>
                 </div>
 
+                <!-- 右側：權限設定中心與前台收銀結帳購物車 -->
                 <div class="space-y-6">
                     
+                    <!-- 👑 核心權限與安全密碼管理（已閉合與補齊修復） -->
                     <div v-if="currentRole === 'admin'" class="bg-[#1f2937] p-4 md:p-6 rounded-2xl shadow-xl border-2 border-amber-500/50 shadow-amber-950/20">
                         <div class="flex justify-between items-center mb-2 border-b border-slate-700 pb-3">
                             <h3 class="font-black text-amber-400 text-lg md:text-xl flex items-center gap-2">🔐 權限與核心密碼設定中心</h3>
@@ -356,11 +376,11 @@
                             <div class="grid grid-cols-2 gap-2">
                                 <div>
                                     <label class="block text-[11px] font-bold text-slate-400 mb-1">👑 老闆密碼</label>
-                                    <input type="password" v-model="sysSettings.bossPassword" placeholder="設置新老闆密碼" class="w-full p-2 bg-[#192231] border border-slate-700 rounded-lg text-xs font-mono text-center tracking-wider text-amber-400 focus:outline-none focus:border-amber-500">
+                                    <input type="password" v-model="sysSettings.bossPassword" @change="saveSettingsToCloud" placeholder="設置新老闆密碼" class="w-full p-2 bg-[#192231] border border-slate-700 rounded-lg text-xs font-mono text-center tracking-wider text-amber-400 focus:outline-none focus:border-amber-500">
                                 </div>
                                 <div>
                                     <label class="block text-[11px] font-bold text-slate-400 mb-1">💼 員工密碼</label>
-                                    <input type="password" v-model="sysSettings.staffPassword" placeholder="設置新員工密碼" class="w-full p-2 bg-[#192231] border border-slate-700 rounded-lg text-xs font-mono text-center tracking-wider text-slate-300 focus:outline-none focus:border-amber-500">
+                                    <input type="password" v-model="sysSettings.staffPassword" @change="saveSettingsToCloud" placeholder="設置新員工密碼" class="w-full p-2 bg-[#192231] border border-slate-700 rounded-lg text-xs font-mono text-center tracking-wider text-slate-300 focus:outline-none focus:border-amber-500">
                                 </div>
                             </div>
                         </div>
@@ -370,124 +390,76 @@
                             
                             <label class="flex items-center justify-between p-2 rounded bg-[#192231]/60 hover:bg-[#192231] cursor-pointer transition">
                                 <span class="text-xs font-bold text-slate-300">📈 允許員工查看「進價成本」</span>
-                                <input type="checkbox" v-model="sysSettings.allowStaffViewCost" class="w-4 h-4 rounded text-blue-600 bg-slate-900 border-slate-700 focus:ring-0">
+                                <input type="checkbox" v-model="sysSettings.allowStaffViewCost" @change="saveSettingsToCloud" class="w-4 h-4 rounded text-blue-600 bg-slate-900 border-slate-700 focus:ring-0">
                             </label>
 
                             <label class="flex items-center justify-between p-2 rounded bg-[#192231]/60 hover:bg-[#192231] cursor-pointer transition">
                                 <span class="text-xs font-bold text-slate-300">🏷️ 允許員工進行「現場議價打折」</span>
-                                <input type="checkbox" v-model="sysSettings.allowStaffDiscount" class="w-4 h-4 rounded text-blue-600 bg-slate-900 border-slate-700 focus:ring-0">
+                                <input type="checkbox" v-model="sysSettings.allowStaffDiscount" @change="saveSettingsToCloud" class="w-4 h-4 rounded text-blue-600 bg-slate-900 border-slate-700 focus:ring-0">
                             </label>
 
                             <label class="flex items-center justify-between p-2 rounded bg-[#192231]/60 hover:bg-[#192231] cursor-pointer transition">
-                                <span class="text-xs font-bold text-slate-300">🔀 允許員工查看與操作「跨店調貨」</span>
-                                <input type="checkbox" v-model="sysSettings.allowStaffTransfer" class="w-4 h-4 rounded text-blue-600 bg-slate-900 border-slate-700 focus:ring-0">
+                                <span class="text-xs font-bold text-slate-300">🔀 允許員工自行「跨店庫存調撥」</span>
+                                <input type="checkbox" v-model="sysSettings.allowStaffTransfer" @change="saveSettingsToCloud" class="w-4 h-4 rounded text-blue-600 bg-slate-900 border-slate-700 focus:ring-0">
                             </label>
                         </div>
-
-                        <button @click="saveSystemSettingsCloud" class="w-full mt-4 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white text-xs font-black py-2.5 rounded-xl shadow-md transition flex items-center justify-center gap-1">
-                            💾 儲存並同步全域權限設定
-                        </button>
                     </div>
 
-                    <div class="bg-[#1f2937] p-4 md:p-6 rounded-2xl shadow-xl border-2 border-emerald-500/40 shadow-emerald-950/20">
-                        <div class="flex justify-between items-center mb-1">
-                            <h3 class="font-black text-emerald-400 text-lg md:text-xl flex items-center gap-2">🛒 櫃檯收銀交易控制台</h3>
-                            <span class="text-[10px] text-slate-500 font-mono font-bold">v5.3</span>
+                    <!-- 🛒 前台即時收銀與購物結帳系統 -->
+                    <div class="bg-[#1f2937] p-4 md:p-6 rounded-2xl shadow-xl border border-slate-800">
+                        <div class="flex justify-between items-center mb-3 border-b border-slate-700 pb-3">
+                            <h3 class="font-black text-emerald-400 text-base md:text-lg flex items-center gap-2">🛒 前台即時收銀櫃檯</h3>
+                            <button @click="clearPurchaseCart" class="text-xs text-slate-400 hover:text-red-400 font-medium">清空臨櫃車</button>
                         </div>
-                        <p class="text-xs md:text-sm text-slate-400 mb-4">支援特徵模糊檢索、單品現場改價打折、整單現場去零頭讓利功能。</p>
-                        
-                        <div class="space-y-4 bg-[#111827] p-3 md:p-4 rounded-xl border border-slate-800">
-                            <div>
-                                <label class="block text-xs md:text-sm font-black text-emerald-400 mb-2 tracking-wider">🔍 特徵模糊快速檢索安全帽 (支援品牌、顏色、型號)</label>
-                                <input type="text" v-model="saleSearchQuery" placeholder="⚡ 例如輸入: SHOEI、消光黑、XL... " class="w-full p-2.5 md:p-3.5 bg-[#192231] border-2 border-slate-700 rounded-xl text-sm md:text-base text-white font-black focus:outline-none focus:border-emerald-500 placeholder-slate-500 tracking-wide">
-                            </div>
 
-                            <div class="flex flex-col gap-4 lg:grid lg:grid-cols-3 lg:items-end">
-                                <div class="lg:col-span-2">
-                                    <label class="block text-xs font-bold text-slate-400 mb-2">1. 選取指定出庫之安全帽規格現貨</label>
-                                    <select v-model="formSale.productId" class="w-full p-2.5 bg-[#192231] border-2 border-slate-700 rounded-xl text-xs md:text-base text-slate-100 font-bold focus:outline-none focus:border-emerald-500 max-w-full truncate">
-                                        <option value="">-- 請選取規格 (餘 {{ filteredSaleInventory.length }} 筆) --</option>
-                                        <option v-for="item in filteredSaleInventory" :value="item.id" :disabled="item.stock <= 0">
-                                            【{{ item.brand }}】{{ item.model }} - {{ item.color }} ({{ item.size }}碼)
-                                            — [${{ item.clearancePrice ? item.clearancePrice : item.price }}] [庫:{{item.stock}}]
-                                        </option>
-                                    </select>
+                        <!-- 購物車清單 -->
+                        <div class="space-y-2 max-h-60 overflow-y-auto mb-4 pr-1">
+                            <div v-for="cartItem in purchaseCart" :key="cartItem.id" class="bg-[#111827] p-2.5 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
+                                <div class="space-y-0.5">
+                                    <div class="font-black text-white">[{{ cartItem.brand }}] {{ cartItem.model }}</div>
+                                    <div class="text-slate-400">尺寸: {{ cartItem.size }} ｜ 顏色: {{ cartItem.color }}</div>
+                                    <div class="font-mono text-emerald-400 font-bold">$ {{ cartItem.singlePrice }} / 頂</div>
                                 </div>
-                                <div class="w-full">
-                                    <div class="grid grid-cols-3 gap-2">
-                                        <div class="col-span-1">
-                                            <label class="block text-[10px] font-black text-slate-400 mb-1.5 text-center">數量</label>
-                                            <input type="number" v-model.number="formSale.qty" min="1" class="p-2 bg-[#192231] border-2 border-slate-700 rounded-xl text-sm w-full text-white text-center font-black focus:outline-none focus:border-emerald-500">
-                                        </div>
-                                        
-                                        <div class="col-span-2">
-                                            <label class="block text-[10px] font-black text-slate-400 mb-1.5">現場特別議價</label>
-                                            <div v-if="currentRole === 'admin' || sysSettings.allowStaffDiscount" class="flex space-x-1">
-                                                <select v-model="formSale.discountType" class="bg-[#192231] border border-slate-700 rounded-xl text-[10px] p-1 text-slate-200 font-bold focus:outline-none w-1/2">
-                                                    <option value="none">原價</option>
-                                                    <option value="percent">打折</option>
-                                                    <option value="minus">直折</option>
-                                                </select>
-                                                <input type="number" v-model.number="formSale.discountValue" :disabled="formSale.discountType === 'none'" placeholder="值" class="border border-slate-700 rounded-xl text-xs p-1 w-1/2 bg-[#192231] text-white disabled:bg-slate-800 disabled:text-slate-600 font-black text-center focus:outline-none">
-                                            </div>
-                                            <div v-else class="text-xs text-slate-500 bg-slate-900 p-2 rounded-xl text-center border border-slate-800 font-medium">
-                                                🔒 員工現場議價功能已被關閉
-                                            </div>
-                                        </div>
-
+                                <div class="flex items-center space-x-2">
+                                    <div class="flex items-center bg-[#1f2937] border border-slate-700 rounded-lg overflow-hidden">
+                                        <button @click="updateCartQty(cartItem, -1)" class="px-2 py-1 text-slate-300 hover:bg-slate-700 font-bold">-</button>
+                                        <span class="px-2 font-mono font-black text-white">{{ cartItem.qty }}</span>
+                                        <button @click="updateCartQty(cartItem, 1)" class="px-2 py-1 text-slate-300 hover:bg-slate-700 font-bold">+</button>
                                     </div>
+                                    <button @click="removeFromCart(cartItem)" class="text-red-400 hover:text-red-500 font-bold px-1">✕</button>
                                 </div>
                             </div>
-
-                            <div class="flex flex-col sm:flex-row justify-between items-center pt-3 border-t border-dashed border-slate-800 gap-3">
-                                <div class="text-xs md:text-sm font-black text-red-400 font-mono bg-red-950/50 px-3 py-2 rounded-xl border border-red-900/40 w-full sm:w-auto text-center">
-                                    本次單頂議價後金額: $ {{ calculatedSinglePrice }} 元
-                                </div>
-                                <button @click="addToSaleCart" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 rounded-xl text-xs md:text-sm font-black transition shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-1.5">
-                                    ➕ 暫存至購物車
-                                </button>
+                            <div v-if="purchaseCart.length === 0" class="text-center py-8 text-slate-500 font-bold text-xs">
+                                臨櫃無選購商品，請點擊左側「售出收銀」
                             </div>
                         </div>
 
-                        <div class="border border-slate-800 rounded-xl overflow-hidden bg-[#111827] mt-4 shadow-inner">
-                            <div class="bg-slate-800/50 p-3 text-xs md:text-sm font-black text-slate-200 border-b border-slate-800 flex justify-between items-center">
-                                <span class="flex items-center gap-1.5">📋 待結帳清單暫存車 (共 {{ saleCart.length }} 品)</span>
-                                <button @click="clearSaleCart" v-if="saleCart.length > 0" class="text-red-400 hover:text-red-300 text-xs font-bold underline">清空</button>
-                            </div>
-                            <div class="max-h-60 overflow-y-auto divide-y divide-slate-800/60">
-                                <div v-for="(cartItem, index) in saleCart" :key="index" class="p-3 flex flex-col sm:flex-row sm:justify-between sm:items-center hover:bg-slate-800/20 gap-2 text-xs md:text-sm">
-                                    <div class="flex flex-col">
-                                        <div class="font-black text-white text-sm">[{{ cartItem.brand }}] {{ cartItem.model }}</div>
-                                        <div class="text-slate-400 text-[11px] font-bold mt-0.5">外觀：{{ cartItem.color }} ｜ 尺寸：{{ cartItem.size }}碼 <span class="text-blue-400 bg-blue-950/80 px-1.5 py-0.5 rounded border border-blue-900/50 ml-1 font-black">{{ cartItem.discountDesc }}</span></div>
-                                    </div>
-                                    <div class="flex items-center justify-between sm:justify-end gap-3 font-mono">
-                                        <span class="text-slate-200 font-black">x{{ cartItem.qty }} 頂</span>
-                                        <span class="text-emerald-400 font-black">$ {{ cartItem.singlePrice * cartItem.qty }}</span>
-                                        <button @click="removeFromSaleCart(index)" class="text-red-500 hover:text-red-400 font-bold text-xs pl-2 border-l border-slate-800">移除</button>
-                                    </div>
-                                </div>
-                                <div v-if="saleCart.length === 0" class="p-6 text-center text-slate-600 text-xs font-bold">暫存車內尚無待結帳商品</div>
-                            </div>
-                        </div>
-
-                        <div v-if="saleCart.length > 0" class="mt-4 pt-4 border-t border-slate-700 space-y-3">
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs font-bold text-slate-400">購物車原始小計:</span>
-                                <span class="text-base font-mono font-bold text-slate-300">$ {{ cartTotalRaw }}</span>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <label class="text-xs font-black text-red-400 flex items-center gap-1">✨ 整單現場去零頭折讓金:</label>
+                        <!-- 結帳優惠折讓與計價 -->
+                        <div class="space-y-3 border-t border-slate-800 pt-3 text-xs">
+                            <div v-if="currentRole === 'admin' || sysSettings.allowStaffDiscount" class="flex items-center justify-between">
+                                <span class="text-slate-400 font-bold">🏷️ 現場議價整單折讓折抵金額：</span>
                                 <div class="flex items-center space-x-1">
-                                    <span class="text-xs text-slate-500 font-bold">- $</span>
-                                    <input type="number" v-model.number="orderDiscountAmount" class="w-20 p-1 bg-[#111827] border border-slate-700 rounded-lg text-right font-mono font-black text-red-400 focus:outline-none focus:border-red-500">
+                                    <span class="text-slate-400 font-mono">$</span>
+                                    <input type="number" v-model.number="orderDiscount" min="0" class="w-20 p-1 bg-[#111827] border border-slate-600 rounded text-right text-red-400 font-black focus:outline-none">
                                 </div>
                             </div>
-                            <div class="p-3 bg-[#111827] border border-slate-800 rounded-xl flex justify-between items-center shadow-inner">
-                                <span class="text-sm font-black text-white">💰 現場實收應付總額:</span>
-                                <span class="text-xl md:text-2xl font-mono font-black text-emerald-400">$ {{ cartFinalTotal }}</span>
+                            <div class="bg-[#111827] p-3 rounded-xl border border-slate-800 space-y-1.5 font-bold">
+                                <div class="flex justify-between text-slate-400">
+                                    <span>小計總額:</span>
+                                    <span class="font-mono">$ {{ cartSubtotal }}</span>
+                                </div>
+                                <div v-if="orderDiscount > 0" class="flex justify-between text-red-400">
+                                    <span>議價折讓:</span>
+                                    <span class="font-mono">- $ {{ orderDiscount }}</span>
+                                </div>
+                                <div class="flex justify-between text-white text-sm md:text-base border-t border-slate-700 pt-1.5 font-black">
+                                    <span class="text-emerald-400">實收總計:</span>
+                                    <span class="font-mono text-emerald-400">$ {{ cartFinalTotal }}</span>
+                                </div>
                             </div>
-                            <button @click="submitCheckoutTransaction" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black py-3 rounded-xl transition shadow-lg shadow-emerald-950/50 text-center tracking-wider text-sm">
-                                🚀 確認交易成功（同步雲端庫存並列印）
+
+                            <button @click="submitCheckout" :disabled="purchaseCart.length === 0" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-500 text-white font-black py-3 rounded-xl shadow-lg transition tracking-wider text-center block text-sm">
+                                🧾 確定成交並列印銷貨簽單
                             </button>
                         </div>
                     </div>
@@ -495,395 +467,408 @@
                 </div>
             </main>
         </template>
-        
     </div>
 
+    <!-- 💡 Vue 3 核心數據整合架構與 Firebase 雲端跨店即時同步模組 -->
     <script>
-        const { createApp } = Vue;
-
-        // 請在此填寫您原本塞弗安全帽系統使用的 Firebase 連線設定
-        const firebaseConfig = {
-            databaseURL: "https://YOUR-FIREBASE-DATABASE-URL.firebaseio.com/" 
-        };
-        
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        const db = firebase.database();
+        const { createApp, ref, computed, onMounted } = Vue;
 
         createApp({
-            data() {
-                return {
-                    // --- 1. 認證登入管理模組 (全新新增) ---
-                    isLoggedIn: false,         // 預設鎖定，需驗證密碼
-                    loginPassword: '',         // 暫存輸入密碼
-                    loginError: false,         // 控制錯誤提示
-                    currentRole: 'staff',      // 經辦身分：'staff' 員工 ｜ 'admin' 老闆
-
-                    // 全域安全控制面板 (串接 Firebase：system_settings/auth)
-                    sysSettings: {
-                        bossPassword: '666',   // 老闆預設核心密碼 (登入直接識別為老闆)
-                        staffPassword: '111',  // 員工預設核心密碼 (登入直接識別為員工)
-                        allowStaffViewCost: false,  // 各項功能微調：成本檢視
-                        allowStaffDiscount: true,  // 各項功能微調：收銀議價打折
-                        allowStaffTransfer: false  // 各項功能微調：跨店庫存調撥
-                    },
-
-                    // --- 2. 原系統固有核心資料鏈 ---
-                    currentStore: 'store_1',   // 目前管理門市
-                    isCloudConnected: true,
-                    fontSizeLevel: 'normal',
-                    selectedBrandTag: 'ALL',
-                    
-                    saleSearchQuery: '',
-                    formSale: {
-                        productId: '',
-                        qty: 1,
-                        discountType: 'none',
-                        discountValue: 0
-                    },
-                    saleCart: [],
-                    orderDiscountAmount: 0,
-
-                    showTransferModal: false,
-                    transferItem: {},
-                    transferDirection: '1_to_2',
-                    transferQty: 1,
-
-                    showReceiptModal: false,
-                    lastReceiptData: { items: [] },
-
-                    hoverImageUrl: '',
-                    hoverX: 0,
-                    hoverY: 0,
-
-                    // Firebase 雲端原始快取節點
-                    rawProducts: {}
-                };
-            },
-            computed: {
-                currentFontSizePx() {
-                    if (this.fontSizeLevel === 'small') return '12px';
-                    if (this.fontSizeLevel === 'large') return '16px';
+            setup() {
+                // 1. 系統安全驗證與身分模組
+                const isLoggedIn = ref(false);
+                const loginPassword = ref('');
+                const loginError = ref(false);
+                const currentRole = ref('staff'); // 預設為前台員工身分
+                const isCloudConnected = ref(false);
+                
+                // 2. 字體與視覺大小適應
+                const fontSizeLevel = ref('normal');
+                const currentFontSizePx = computed(() => {
+                    if (fontSizeLevel.ref === 'small') return '12px';
+                    if (fontSizeLevel.value === 'large') return '16px';
                     return '14px';
-                },
-                storeName() {
-                    return this.currentStore === 'store_1' ? '一號店 (內埔總店)' : '二號店 (學區分店)';
-                },
-                availableBrands() {
-                    const brands = new Set();
-                    Object.values(this.rawProducts).forEach(p => { if(p.brand) brands.add(p.brand.toUpperCase()); });
-                    return Array.from(brands);
-                },
-                // 解析與整理目前的店庫存
-                sortedAndFilteredInventory() {
-                    let items = [];
-                    Object.keys(this.rawProducts).forEach(id => {
-                        const prod = this.rawProducts[id];
-                        // 根據 Firebase 分店路徑抽取該店現貨存量
-                        const currentStock = (prod.stocks && prod.stocks[this.currentStore]) ? prod.stocks[this.currentStore].stock : 0;
-                        const safeStock = (prod.stocks && prod.stocks[this.currentStore]) ? prod.stocks[this.currentStore].safeStock : 2;
-                        
-                        items.push({
-                            id: id,
-                            brand: prod.brand,
-                            model: prod.model,
-                            color: prod.color,
-                            size: prod.size,
-                            category: prod.category || '安全帽',
-                            image: prod.image,
-                            cost: prod.cost || 0,
-                            price: prod.price || 0,
-                            clearancePrice: prod.clearancePrice || null,
-                            stock: currentStock,
-                            safeStock: safeStock,
-                            rawStocksData: prod.stocks || {}
-                        });
-                    });
-
-                    // 篩選標籤
-                    if (this.selectedBrandTag === 'LOW_STOCK') {
-                        return items.filter(i => i.stock <= i.safeStock);
-                    } else if (this.selectedBrandTag !== 'ALL') {
-                        return items.filter(i => i.brand.toUpperCase() === this.selectedBrandTag);
-                    }
-                    return items;
-                },
-                lowStockCount() {
-                    return Object.values(this.rawProducts).filter(p => {
-                        const s = (p.stocks && p.stocks[this.currentStore]) ? p.stocks[this.currentStore].stock : 0;
-                        const safe = (p.stocks && p.stocks[this.currentStore]) ? p.stocks[this.currentStore].safeStock : 2;
-                        return s <= safe;
-                    }).length;
-                },
-                // 收銀前台專用模糊篩選器
-                filteredSaleInventory() {
-                    const query = this.saleSearchQuery.trim().toLowerCase();
-                    return this.sortedAndFilteredInventory.filter(item => {
-                        if (!query) return true;
-                        return item.brand.toLowerCase().includes(query) ||
-                               item.model.toLowerCase().includes(query) ||
-                               item.color.toLowerCase().includes(query) ||
-                               item.size.toLowerCase().includes(query);
-                    });
-                },
-                // 計算單頂改價小計
-                calculatedSinglePrice() {
-                    if (!this.formSale.productId) return 0;
-                    const prod = this.sortedAndFilteredInventory.find(i => i.id === this.formSale.productId);
-                    if (!prod) return 0;
-                    
-                    let basePrice = prod.clearancePrice ? prod.clearancePrice : prod.price;
-                    
-                    // 老闆可以使用，或者員工獲授權時才可使用折讓
-                    if (this.currentRole === 'admin' || this.sysSettings.allowStaffDiscount) {
-                        if (this.formSale.discountType === 'percent' && this.formSale.discountValue > 0) {
-                            return Math.round(basePrice * (this.formSale.discountValue / 10));
-                        } else if (this.formSale.discountType === 'minus' && this.formSale.discountValue > 0) {
-                            return Math.max(0, basePrice - this.formSale.discountValue);
-                        }
-                    }
-                    return basePrice;
-                },
-                cartTotalRaw() {
-                    return this.saleCart.reduce((sum, item) => sum + (item.singlePrice * item.qty), 0);
-                },
-                cartFinalTotal() {
-                    return Math.max(0, this.cartTotalRaw - this.orderDiscountAmount);
-                }
-            },
-            methods: {
-                // --- 1. 核心登入及安全防護控制 (全新代碼) ---
-                handleLogin() {
-                    this.loginError = false;
-                    const pwd = this.loginPassword.trim();
-                    
-                    if (pwd === this.sysSettings.bossPassword) {
-                        this.isLoggedIn = true;
-                        this.currentRole = 'admin';
-                        this.loginPassword = '';
-                    } else if (pwd === this.sysSettings.staffPassword) {
-                        this.isLoggedIn = true;
-                        this.currentRole = 'staff';
-                        this.loginPassword = '';
-                    } else {
-                        this.loginError = true;
-                    }
-                },
-                handleLogout() {
-                    this.isLoggedIn = false;
-                    this.currentRole = 'staff';
-                    this.loginPassword = '';
-                },
-                // 切換身份時的安全防護機制
-                switchRoleSecurely(target) {
-                    if (target === 'admin') {
-                        const check = prompt("🔒 請輸入老闆核心密碼以解鎖後台設定：");
-                        if (check === this.sysSettings.bossPassword) {
-                            this.currentRole = 'admin';
-                        } else {
-                            alert("❌ 密碼錯誤，拒絕存取老闆後台！");
-                        }
-                    } else {
-                        this.currentRole = 'staff';
-                    }
-                },
-                // 儲存全域系統密碼與權限開關到 Firebase
-                saveSystemSettingsCloud() {
-                    if (this.sysSettings.bossPassword === '' || this.sysSettings.staffPassword === '') {
-                        alert("⚠️ 錯誤：老闆與員工密碼不得為空字串！");
-                        return;
-                    }
-                    db.ref('system_settings/auth').set(this.sysSettings)
-                        .then(() => alert("✨ 雲端同步成功！系統密碼與前台員工功能調整已即時生效。"))
-                        .catch(err => alert("❌ 雲端儲存失敗: " + err.message));
-                },
-
-                // --- 2. 固有營運與 Firebase 資料庫串接細節 ---
-                totalCountByBrand(brand) {
-                    if (brand === 'ALL') return this.sortedAndFilteredInventory.length;
-                    return this.sortedAndFilteredInventory.filter(i => i.brand.toUpperCase() === brand).length;
-                },
-                showBigImage(e, url) {
-                    this.hoverImageUrl = url;
-                    this.hoverX = e.clientX;
-                    this.hoverY = e.clientY;
-                },
-                hideBigImage() {
-                    this.hoverImageUrl = '';
-                },
-                changeZoom(level) {
-                    this.fontSizeLevel = level;
-                },
-                clearPurchaseCart() {
-                    this.saleCart = [];
-                    this.orderDiscountAmount = 0;
-                },
-                // 即時更改產品庫存與定價更新回 Firebase
-                updateSingleProductCloud(item) {
-                    const updates = {};
-                    updates[`products/${item.id}/price`] = item.price;
-                    updates[`products/${item.id}/clearancePrice`] = item.clearancePrice === "" ? null : item.clearancePrice;
-                    updates[`products/${item.id}/stocks/${this.currentStore}/stock`] = item.stock;
-                    
-                    db.ref().update(updates).catch(err => alert("同步資料錯誤: " + err.message));
-                },
-                // 跨店調貨彈窗與邏輯
-                getStockInStore(item, storeKey) {
-                    return (item.rawStocksData && item.rawStocksData[storeKey]) ? item.rawStocksData[storeKey].stock : 0;
-                },
-                openTransferModal(item) {
-                    this.transferItem = item;
-                    this.transferQty = 1;
-                    this.transferDirection = this.currentStore === 'store_1' ? '1_to_2' : '2_to_1';
-                    this.showTransferModal = true;
-                },
-                executeTransfer() {
-                    if (this.transferQty < 1) return;
-                    
-                    const fromStore = this.transferDirection === '1_to_2' ? 'store_1' : 'store_2';
-                    const toStore = this.transferDirection === '1_to_2' ? 'store_2' : 'store_1';
-                    
-                    const fromStock = this.getStockInStore(this.transferItem, fromStore);
-                    if (fromStock < this.transferQty) {
-                        alert("❌ 調撥失敗：出庫店現貨存量不足！");
-                        return;
-                    }
-
-                    const newFromStock = fromStock - this.transferQty;
-                    const newToStock = this.getStockInStore(this.transferItem, toStore) + this.transferQty;
-
-                    const updates = {};
-                    updates[`products/${this.transferItem.id}/stocks/${fromStore}/stock`] = newFromStock;
-                    updates[`products/${this.transferItem.id}/stocks/${toStore}/stock`] = newToStock;
-
-                    db.ref().update(updates).then(() => {
-                        this.showTransferModal = false;
-                        alert("🔀 跨店調撥執行完畢！雲端庫存已扣同步增減。");
-                    });
-                },
-                // 收銀暫存購物車操作
-                addToSaleCart() {
-                    if (!this.formSale.productId) return;
-                    const prod = this.sortedAndFilteredInventory.find(i => i.id === this.formSale.productId);
-                    if (!prod) return;
-
-                    if (prod.stock < this.formSale.qty) {
-                        alert("⚠️ 門市現貨不足，無法銷售指定數量！");
-                        return;
-                    }
-
-                    let desc = "原價";
-                    if (this.currentRole === 'admin' || this.sysSettings.allowStaffDiscount) {
-                        if (this.formSale.discountType === 'percent') desc = `${this.formSale.discountValue} 折`;
-                        if (this.formSale.discountType === 'minus') desc = `折 -${this.formSale.discountValue}`;
-                    }
-
-                    this.saleCart.push({
-                        id: prod.id,
-                        brand: prod.brand,
-                        model: prod.model,
-                        color: prod.color,
-                        size: prod.size,
-                        qty: this.formSale.qty,
-                        singlePrice: this.calculatedSinglePrice,
-                        discountDesc: desc
-                    });
-
-                    // 重置選單
-                    this.formSale.productId = '';
-                    this.formSale.qty = 1;
-                    this.formSale.discountType = 'none';
-                    this.formSale.discountValue = 0;
-                },
-                removeFromSaleCart(index) {
-                    this.saleCart.splice(index, 1);
-                },
-                clearSaleCart() {
-                    this.saleCart = [];
-                },
-                // 提交結帳交易：更新 Firebase 門市庫存並產生銷售單
-                submitCheckoutTransaction() {
-                    if (this.saleCart.length === 0) return;
-                    
-                    const updates = {};
-                    let isStockValid = true;
-
-                    this.saleCart.forEach(cartItem => {
-                        const originalProd = this.rawProducts[cartItem.id];
-                        const currentStoreStock = (originalProd.stocks && originalProd.stocks[this.currentStore]) ? originalProd.stocks[this.currentStore].stock : 0;
-                        
-                        if (currentStoreStock < cartItem.qty) {
-                            alert(`❌ 結帳失敗：[${cartItem.brand}] ${cartItem.model} 在結帳期間庫存發生變動，導致現貨不足！`);
-                            isStockValid = false;
-                        }
-                        updates[`products/${cartItem.id}/stocks/${this.currentStore}/stock`] = currentStoreStock - cartItem.qty;
-                    });
-
-                    if (!isStockValid) return;
-
-                    db.ref().update(updates).then(() => {
-                        // 生成單據列印快照
-                        const now = new Date();
-                        this.lastReceiptData = {
-                            storeName: this.storeName,
-                            timestamp: now.getTime(),
-                            date: now.toLocaleString(),
-                            role: this.currentRole,
-                            items: JSON.parse(JSON.stringify(this.saleCart)),
-                            orderDiscount: this.orderDiscountAmount,
-                            finalTotal: this.cartFinalTotal
-                        };
-                        
-                        this.clearPurchaseCart();
-                        this.showReceiptModal = true;
-                    }).catch(err => alert("交易結帳失敗: " + err.message));
-                },
-                printReceipt() {
-                    window.print();
-                },
-                resetToDefault() {
-                    if(confirm("確定要將控制台重設回原廠初始範例狀態嗎？")) {
-                        // 範例初始化結構
-                        const defaultSetup = {
-                            "products": {
-                                "p1": { "brand": "SHOEI", "model": "J-Cruise II", "color": "消光黑", "size": "XL", "category": "四分之三帽", "price": 18000, "cost": 14000, "stocks": { "store_1": { "stock": 5, "safeStock": 2 }, "store_2": { "stock": 3, "safeStock": 1 } } },
-                                "p2": { "brand": "M2R", "model": "FR-2", "color": "珍珠白", "size": "L", "category": "四分之三帽", "price": 2300, "cost": 1600, "stocks": { "store_1": { "stock": 12, "safeStock": 3 }, "store_2": { "stock": 1, "safeStock": 2 } } },
-                                "p3": { "brand": "Gallop", "model": "Classic Retro", "color": "水泥灰", "size": "M", "category": "復古帽", "price": 3800, "cost": 2600, "stocks": { "store_1": { "stock": 2, "safeStock": 2 }, "store_2": { "stock": 4, "safeStock": 1 } } }
-                            },
-                            "system_settings": {
-                                "auth": {
-                                    "bossPassword": "666",
-                                    "staffPassword": "111",
-                                    "allowStaffViewCost": false,
-                                    "allowStaffDiscount": true,
-                                    "allowStaffTransfer": false
-                                }
-                            }
-                        };
-                        db.ref('/').set(defaultSetup).then(() => window.location.reload());
-                    }
-                }
-            },
-            mounted() {
-                // 實時監聽與撈取 Firebase 全域資料（包含庫存與全域系統權限）
-                db.ref('/').on('value', snapshot => {
-                    const data = snapshot.val() || {};
-                    this.isCloudConnected = true;
-                    
-                    if (data.products) {
-                        this.rawProducts = data.products;
-                    }
-                    
-                    // 撈取並同步雲端權限與密碼
-                    if (data.system_settings && data.system_settings.auth) {
-                        this.sysSettings = data.system_settings.auth;
-                    }
-                }, error => {
-                    this.isCloudConnected = false;
                 });
+
+                // 3. 店別與商品大圖懸浮
+                const currentStore = ref('store_1');
+                const storeName = computed(() => currentStore.value === 'store_1' ? '一號店 (內埔總店)' : '二號店 (學區分店)');
+                const selectedBrandTag = ref('ALL');
+                
+                const hoverImageUrl = ref('');
+                const hoverX = ref(0);
+                const hoverY = ref(0);
+
+                // 4. 跨店即時連線控制核心庫存矩陣
+                const globalInventory = ref([]);
+                
+                // 5. 老闆安全設定微調參數
+                const sysSettings = ref({
+                    bossPassword: '888',   // 預設老闆密碼
+                    staffPassword: '123',  // 預設員工密碼
+                    allowStaffViewCost: false,
+                    allowStaffDiscount: false,
+                    allowStaffTransfer: false
+                });
+
+                // 6. 收銀購物車控制
+                const purchaseCart = ref([]);
+                const orderDiscount = ref(0);
+                const showTransferModal = ref(false);
+                const transferItem = ref({});
+                const transferDirection = ref('1_to_2');
+                const transferQty = ref(1);
+
+                // 7. 列印與最後銷售紀錄暫存
+                const showReceiptModal = ref(false);
+                const lastReceiptData = ref({
+                    storeName: '', timestamp: '', date: '', role: '', items: [], orderDiscount: 0, finalTotal: 0
+                });
+
+                // -------------------------------------------------------------
+                // FIREBASE 雲端初始化與資料庫實時雙向監聽
+                // -------------------------------------------------------------
+                // 提示：請在此處替換為您個人或門市專屬的 Firebase 憑證資訊
+                const firebaseConfig = {
+                    databaseURL: "https://safeer-helmet-default-rtdb.firebaseio.com/" 
+                };
+
+                let db = null;
+                onMounted(() => {
+                    try {
+                        if (!firebase.apps.length) {
+                            firebase.initializeApp(firebaseConfig);
+                        }
+                        db = firebase.database();
+                        isCloudConnected.value = true;
+
+                        // 實時雙向監聽雲端庫存異動
+                        db.ref('inventory').on('value', (snapshot) => {
+                            const data = snapshot.val();
+                            if (data) {
+                                globalInventory.value = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+                            } else {
+                                // 初始建立預設商品庫存矩陣
+                                seedDefaultInventory();
+                            }
+                        });
+
+                        // 實時雙向監聽系統核心設定與密碼權限
+                        db.ref('settings').on('value', (snapshot) => {
+                            const data = snapshot.val();
+                            if (data) { sysSettings.value = data; }
+                        });
+                    } catch (e) {
+                        console.error("Firebase 連線失敗，啟動本地模擬展示模式: ", e);
+                        isCloudConnected.value = false;
+                        seedDefaultInventoryLocal();
+                    }
+                });
+
+                // 初始化安全帽範例數據至雲端
+                function seedDefaultInventory() {
+                    const sample = {
+                        "p1": { brand: "M2R", model: "FR-2 戰警", category: "四分之三帽", color: "消光黑", size: "XL", price: 2300, cost: 1400, clearancePrice: 0, safeStock: 3, stock_store_1: 8, stock_store_2: 4, image: "" },
+                        "p2": { brand: "SHOEI", model: "J-Cruise II", category: "頂級開放式", color: "珍珠白", size: "L", price: 18000, cost: 13500, clearancePrice: 0, safeStock: 1, stock_store_1: 2, stock_store_2: 1, image: "" },
+                        "p3": { brand: "MONGOLIAN", model: "蒙古人復古帽", category: "復古全罩", color: "水泥灰", size: "M", price: 3800, cost: 2200, clearancePrice: 3200, safeStock: 2, stock_store_1: 5, stock_store_2: 0, image: "" },
+                        "p4": { brand: "GALLOP", model: "經典復古 3/4", category: "四分之三帽", color: "乳酪白", size: "S", price: 2800, cost: 1650, clearancePrice: 0, safeStock: 2, stock_store_1: 1, stock_store_2: 6, image: "" }
+                    };
+                    if(db) db.ref('inventory').set(sample);
+                }
+
+                function seedDefaultInventoryLocal() {
+                    globalInventory.value = [
+                        { id: "p1", brand: "M2R", model: "FR-2 戰警", category: "四分之三帽", color: "消光黑", size: "XL", price: 2300, cost: 1400, clearancePrice: 0, safeStock: 3, stock_store_1: 8, stock_store_2: 4 },
+                        { id: "p2", brand: "SHOEI", model: "J-Cruise II", category: "頂級開放式", color: "珍珠白", size: "L", price: 18000, cost: 13500, clearancePrice: 0, safeStock: 1, stock_store_1: 2, stock_store_2: 1 },
+                        { id: "p3", brand: "MONGOLIAN", model: "蒙古人復古帽", category: "復古全罩", color: "水泥灰", size: "M", price: 3800, cost: 2200, clearancePrice: 3200, safeStock: 2, stock_store_1: 5, stock_store_2: 0 },
+                        { id: "p4", brand: "GALLOP", model: "經典復古 3/4", category: "四分之三帽", color: "乳酪白", size: "S", price: 2800, cost: 1650, clearancePrice: 0, safeStock: 2, stock_store_1: 1, stock_store_2: 6 }
+                    ];
+                }
+
+                // -------------------------------------------------------------
+                // 核心控制邏輯
+                // -------------------------------------------------------------
+                const handleLogin = () => {
+                    if (loginPassword.value === sysSettings.value.bossPassword) {
+                        isLoggedIn.value = true;
+                        currentRole.value = 'admin';
+                        loginError.value = false;
+                    } else if (loginPassword.value === sysSettings.value.staffPassword) {
+                        isLoggedIn.value = true;
+                        currentRole.value = 'staff';
+                        loginError.value = false;
+                    } else {
+                        loginError.value = true;
+                    }
+                };
+
+                const handleLogout = () => {
+                    isLoggedIn.value = false;
+                    loginPassword.value = '';
+                };
+
+                const switchRoleSecurely = (target) => {
+                    if (target === 'staff') {
+                        currentRole.value = 'staff';
+                    } else {
+                        const pass = prompt("🔐 請輸入「老闆」專屬授權驗證密碼：");
+                        if (pass === sysSettings.value.bossPassword) {
+                            currentRole.value = 'admin';
+                        } else if (pass !== null) {
+                            alert("❌ 密碼認證錯誤！防越權失敗。");
+                        }
+                    }
+                };
+
+                const changeZoom = (level) => { fontSizeLevel.value = level; };
+
+                // 計算當前分店的即時商品矩陣
+                const sortedAndFilteredInventory = computed(() => {
+                    return globalInventory.value.map(item => {
+                        // 依據店別動態組裝對應的 stock 欄位值
+                        return {
+                            ...item,
+                            stock: currentStore.value === 'store_1' ? item.stock_store_1 : item.stock_store_2
+                        };
+                    }).filter(item => {
+                        if (selectedBrandTag.value === 'ALL') return true;
+                        if (selectedBrandTag.value === 'LOW_STOCK') return item.stock <= item.safeStock;
+                        return item.brand.toUpperCase() === selectedBrandTag.value.toUpperCase();
+                    });
+                });
+
+                const availableBrands = computed(() => {
+                    const brands = globalInventory.value.map(i => i.brand.toUpperCase());
+                    return [...new Set(brands)];
+                });
+
+                const lowStockCount = computed(() => {
+                    return globalInventory.value.filter(item => {
+                        const s = currentStore.value === 'store_1' ? item.stock_store_1 : item.stock_store_2;
+                        return s <= item.safeStock;
+                    }).length;
+                });
+
+                const totalCountByBrand = (brand) => {
+                    return globalInventory.value.filter(item => {
+                        const s = currentStore.value === 'store_1' ? item.stock_store_1 : item.stock_store_2;
+                        if (brand === 'ALL') return true;
+                        return item.brand.toUpperCase() === brand.toUpperCase();
+                    }).length;
+                };
+
+                // 老闆直接更新單店庫存、定價、促銷出清價
+                const updateSingleProductCloud = (item) => {
+                    if (currentRole.value !== 'admin') return;
+                    if (db) {
+                        const updateData = {};
+                        if (currentStore.value === 'store_1') {
+                            updateData[`inventory/${item.id}/stock_store_1`] = item.stock;
+                        } else {
+                            updateData[`inventory/${item.id}/stock_store_2`] = item.stock;
+                        }
+                        updateData[`inventory/${item.id}/price`] = item.price;
+                        updateData[`inventory/${item.id}/clearancePrice`] = item.clearancePrice || 0;
+                        db.ref().update(updateData);
+                    }
+                };
+
+                const saveSettingsToCloud = () => {
+                    if (db && currentRole.value === 'admin') {
+                        db.ref('settings').set(sysSettings.value);
+                    }
+                };
+
+                // -------------------------------------------------------------
+                // 跨店調撥功能
+                // -------------------------------------------------------------
+                const getStockInStore = (item, storeKey) => {
+                    const target = globalInventory.value.find(i => i.id === item.id);
+                    if (!target) return 0;
+                    return storeKey === 'store_1' ? target.stock_store_1 : target.stock_store_2;
+                };
+
+                const openTransferModal = (item) => {
+                    transferItem.value = item;
+                    transferQty.value = 1;
+                    transferDirection.value = currentStore.value === 'store_1' ? '1_to_2' : '2_to_1';
+                    showTransferModal.value = true;
+                };
+
+                const executeTransfer = () => {
+                    const qty = parseInt(transferQty.value);
+                    if (isNaN(qty) || qty <= 0) { alert("請輸入有效的正整數調撥數量！"); return; }
+
+                    const targetProduct = globalInventory.value.find(i => i.id === transferItem.value.id);
+                    if (!targetProduct) return;
+
+                    let sourceStock = transferDirection.value === '1_to_2' ? targetProduct.stock_store_1 : targetProduct.stock_store_2;
+                    
+                    if (sourceStock < qty) {
+                        alert(`❌ 調撥失敗！撥出分店現貨庫存不足（剩餘 ${sourceStock} 頂），無法撥出。`);
+                        return;
+                    }
+
+                    if (db) {
+                        const updates = {};
+                        if (transferDirection.value === '1_to_2') {
+                            updates[`inventory/${targetProduct.id}/stock_store_1`] = targetProduct.stock_store_1 - qty;
+                            updates[`inventory/${targetProduct.id}/stock_store_2`] = targetProduct.stock_store_2 + qty;
+                        } else {
+                            updates[`inventory/${targetProduct.id}/stock_store_1`] = targetProduct.stock_store_1 + qty;
+                            updates[`inventory/${targetProduct.id}/stock_store_2`] = targetProduct.stock_store_2 - qty;
+                        }
+                        db.ref().update(updates).then(() => {
+                            showTransferModal.value = false;
+                            alert("🔀 雲端跨店庫存調撥成功！兩店水位已即時同頻更新。");
+                        });
+                    } else {
+                        // 本地模擬
+                        if (transferDirection.value === '1_to_2') {
+                            targetProduct.stock_store_1 -= qty;
+                            targetProduct.stock_store_2 += qty;
+                        } else {
+                            targetProduct.stock_store_1 += qty;
+                            targetProduct.stock_store_2 -= qty;
+                        }
+                        showTransferModal.value = false;
+                        alert("🔀 本地模擬庫存調撥成功。");
+                    }
+                };
+
+                // -------------------------------------------------------------
+                // 前台臨櫃收銀模組
+                // -------------------------------------------------------------
+                const addToCart = (item) => {
+                    const price = item.clearancePrice > 0 ? item.clearancePrice : item.price;
+                    const exist = purchaseCart.value.find(c => c.id === item.id);
+                    
+                    if (exist) {
+                        if (exist.qty >= item.stock) { alert("臨櫃購買量已達該店現貨庫存上限！"); return; }
+                        exist.qty++;
+                    } else {
+                        purchaseCart.value.push({
+                            id: item.id,
+                            brand: item.brand,
+                            model: item.model,
+                            size: item.size,
+                            color: item.color,
+                            singlePrice: price,
+                            qty: 1
+                        });
+                    }
+                };
+
+                const updateCartQty = (cartItem, change) => {
+                    const originProduct = globalInventory.value.find(i => i.id === cartItem.id);
+                    const maxStock = currentStore.value === 'store_1' ? originProduct.stock_store_1 : originProduct.stock_store_2;
+                    
+                    cartItem.qty += change;
+                    if (cartItem.qty > maxStock) {
+                        alert("臨櫃數量超出分店庫存現貨！");
+                        cartItem.qty = maxStock;
+                    }
+                    if (cartItem.qty <= 0) removeFromCart(cartItem);
+                };
+
+                const removeFromCart = (cartItem) => {
+                    purchaseCart.value = purchaseCart.value.filter(c => c.id !== cartItem.id);
+                };
+
+                const clearPurchaseCart = () => {
+                    purchaseCart.value = [];
+                    orderDiscount.value = 0;
+                };
+
+                const cartSubtotal = computed(() => {
+                    return purchaseCart.value.reduce((sum, item) => sum + (item.singlePrice * item.qty), 0);
+                });
+
+                const cartFinalTotal = computed(() => {
+                    const total = cartSubtotal.value - orderDiscount.value;
+                    return total < 0 ? 0 : total;
+                });
+
+                // 結帳扣庫存並導向銷貨單列印
+                const submitCheckout = () => {
+                    if (purchaseCart.value.length === 0) return;
+
+                    // 檢查與雲端庫存最終一致性
+                    for (let cartItem of purchaseCart.value) {
+                        const prod = globalInventory.value.find(i => i.id === cartItem.id);
+                        const currentStock = currentStore.value === 'store_1' ? prod.stock_store_1 : prod.stock_store_2;
+                        if (currentStock < cartItem.qty) {
+                            alert(`❌ 結帳中止！商品 [${cartItem.model}] 現貨不足，期間可能已被同仁售出。`);
+                            return;
+                        }
+                    }
+
+                    const now = new Date();
+                    const timestampStr = now.getTime();
+                    const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+                    // 備妥列印與明細簽單數據
+                    lastReceiptData.value = {
+                        storeName: storeName.value,
+                        timestamp: timestampStr,
+                        date: dateStr,
+                        role: currentRole.value,
+                        items: [...purchaseCart.value],
+                        orderDiscount: orderDiscount.value,
+                        finalTotal: cartFinalTotal.value
+                    };
+
+                    // 更新扣除庫存至雲端
+                    if (db) {
+                        const updates = {};
+                        purchaseCart.value.forEach(cartItem => {
+                            const prod = globalInventory.value.find(i => i.id === cartItem.id);
+                            if (currentStore.value === 'store_1') {
+                                updates[`inventory/${cartItem.id}/stock_store_1`] = prod.stock_store_1 - cartItem.qty;
+                            } else {
+                                updates[`inventory/${cartItem.id}/stock_store_2`] = prod.stock_store_2 - cartItem.qty;
+                            }
+                        });
+                        db.ref().update(updates).then(() => {
+                            clearPurchaseCart();
+                            showReceiptModal.value = true;
+                        });
+                    } else {
+                        // 本地模擬扣庫存
+                        purchaseCart.value.forEach(cartItem => {
+                            const prod = globalInventory.value.find(i => i.id === cartItem.id);
+                            if (currentStore.value === 'store_1') prod.stock_store_1 -= cartItem.qty;
+                            else prod.stock_store_2 -= cartItem.qty;
+                        });
+                        clearPurchaseCart();
+                        showReceiptModal.value = true;
+                    }
+                };
+
+                const printReceipt = () => {
+                    window.print();
+                };
+
+                // 8. 縮圖懸浮控制
+                const showBigImage = (e, url) => {
+                    hoverImageUrl.value = url;
+                    hoverX.value = e.clientX;
+                    hoverY.value = e.clientY;
+                };
+                const hideBigImage = () => { hoverImageUrl.value = ''; };
+
+                return {
+                    isLoggedIn, loginPassword, loginError, currentRole, handleLogin, handleLogout, switchRoleSecurely,
+                    fontSizeLevel, currentFontSizePx, changeZoom, currentStore, storeName, selectedBrandTag,
+                    hoverImageUrl, hoverX, hoverY, showBigImage, hideBigImage,
+                    sortedAndFilteredInventory, availableBrands, lowStockCount, totalCountByBrand, updateSingleProductCloud,
+                    sysSettings, saveSettingsToCloud, isCloudConnected,
+                    purchaseCart, orderDiscount, addToCart, updateCartQty, removeFromCart, clearPurchaseCart,
+                    cartSubtotal, cartFinalTotal, showTransferModal, transferItem, transferDirection, transferQty,
+                    openTransferModal, executeTransfer, getStockInStore, submitCheckout, showReceiptModal, lastReceiptData, printReceipt
+                };
             }
-        });
+        }).mount('#app');
     </script>
 </body>
 </html>
